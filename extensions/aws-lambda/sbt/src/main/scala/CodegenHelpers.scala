@@ -11,7 +11,7 @@ private[aws] object CodegenHelpers {
     log.info(s"Running yaga AWS codegen with args: ${mainArgs.mkString(" ")}")
 
     MavenArtifactsHelpers.runMavenArtifactMainWithArgs(
-      "org.virtuslab", "yaga-aws-lambda-codegen_3", YagaAwsLambdaPlugin.yagaAwsVersion,
+      "org.virtuslab", "yaga-aws-lambda-codegen_3", YagaAwsLambdaPlugin.yagaAwsLambdaVersion,
       "yaga.codegen.aws.runCodegen",
       mainArgs
     )

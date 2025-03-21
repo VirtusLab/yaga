@@ -1,6 +1,7 @@
 import java.nio.file.Path
 
 ThisBuild / scalaVersion := "3.3.5"
+ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 
 lazy val childLambdaA = project.in(file("child-lambda-a"))
   .awsJsLambda(

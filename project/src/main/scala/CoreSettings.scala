@@ -13,13 +13,13 @@ object CoreSettings {
 
   val modelJvmSettings = modelSharedSettings ++ Seq(
     libraryDependencies ++= Seq(
-      "org.virtuslab" %% "besom-json" % "0.4.0-SNAPSHOT",
+      "org.virtuslab" %% "besom-json" % CommonSettings.besomVersion,
     )
   )
 
   val modelJsSettings = modelSharedSettings ++ Seq(
     libraryDependencies ++= Seq(
-      "org.virtuslab" %% "besom-json_sjs1" % "0.4.0-SNAPSHOT",
+      "org.virtuslab" %% "besom-json_sjs1" % CommonSettings.besomVersion,
     )
   )
 
