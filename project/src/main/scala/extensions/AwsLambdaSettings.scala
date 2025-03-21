@@ -21,8 +21,8 @@ object AwsLambdaSettings {
   val besomSettings = CommonSettings.besomModuleSettings ++ Seq(
     name := "yaga-aws-lambda-besom",
     libraryDependencies ++= Seq(
-      "org.virtuslab" %% "besom-core" % "0.4.0-SNAPSHOT",
-      "org.virtuslab" %% "besom-aws" % "6.70.0-mini-core.0.4-SNAPSHOT",
+      CommonSettings.besomCoreDependency,
+      CommonSettings.besomProviderDependency("aws", "6.72.0"),
       classGraphDep,
     )
   )

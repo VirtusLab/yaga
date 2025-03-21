@@ -10,19 +10,19 @@ import java.nio.file.{Files, Path}
 import sbtassembly.AssemblyPlugin.*
 import sbtassembly.AssemblyPlugin.autoImport.*
 import sbtassembly.MergeStrategy
-import yaga.sbt.{MavenArtifactsHelpers, YagaDependency}
 import org.scalajs.sbtplugin.ScalaJSPlugin
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.*
+import yaga.sbt.YagaPlugin
 import yaga.sbt.YagaPlugin.autoImport.yagaGeneratedSources
 
 object YagaAwsLambdaPlugin extends AutoPlugin {
-  val yagaAwsVersion = "0.4.0-SNAPSHOT"
-  val yagaBesomAwsSdkDep = "org.virtuslab" %% "yaga-aws-lambda-besom" % yagaAwsVersion
+  val yagaAwsLambdaVersion = YagaPlugin.yagaVersion
+  val yagaBesomAwsSdkDep = "org.virtuslab" %% "yaga-aws-lambda-besom" % yagaAwsLambdaVersion
 
   val jsoniterVersion = "2.33.2"
   val jsoniterMacrosDep = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.33.2" % "compile-internal"
 
-  override def requires = sbtassembly.AssemblyPlugin && yaga.sbt.YagaPlugin
+  override def requires = sbtassembly.AssemblyPlugin &&YagaPlugin
   override def trigger = allRequirements
 
   object autoImport {
@@ -39,7 +39,7 @@ object YagaAwsLambdaPlugin extends AutoPlugin {
       def awsJvmLambda() = {
         project.settings(
           libraryDependencies ++= Seq(
-            "org.virtuslab" %% "yaga-aws-lambda-sdk" % yagaAwsVersion,
+            "org.virtuslab" %% "yaga-aws-lambda-sdk" % yagaAwsLambdaVersion,
             jsoniterMacrosDep
           ),
           yagaAwsLambdaRuntime := "java21",
@@ -54,7 +54,7 @@ object YagaAwsLambdaPlugin extends AutoPlugin {
           .enablePlugins(ScalaJSPlugin)
           .settings(
             libraryDependencies ++= Seq(
-              "org.virtuslab" %% "yaga-aws-lambda-sdk_sjs1" % yagaAwsVersion, // TODO use %%%
+              "org.virtuslab" %% "yaga-aws-lambda-sdk_sjs1" % yagaAwsLambdaVersion, // TODO use %%%
               jsoniterMacrosDep
             ),
             yagaAwsLambdaRuntime := "nodejs22.x",

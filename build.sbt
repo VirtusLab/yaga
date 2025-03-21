@@ -16,12 +16,13 @@ lazy val root = project
 ////////////////////////////////////////////////////////////
 
 ThisBuild / organization := "org.virtuslab"
-ThisBuild / version := "0.4.0-SNAPSHOT"
+ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / developers := List(
   Developer(id = "lbialy", name = "Łukasz Biały", email = "lbialy@virtuslab.com", url = url("https://github.com/lbialy")),
   Developer(id = "prolativ", name = "Michał Pałka", email = "mpalka@virtuslab.com", url = url("https://github.com/prolativ"))
 )
 
+ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 
 ////////////////////////////////////////////////////////////
 // Core
