@@ -19,8 +19,8 @@ object YagaAwsLambdaPlugin extends AutoPlugin {
   val yagaAwsLambdaVersion = YagaPlugin.yagaVersion
   val yagaBesomAwsSdkDep = "org.virtuslab" %% "yaga-aws-lambda-besom" % yagaAwsLambdaVersion
 
-  val jsoniterVersion = "2.33.2"
-  val jsoniterMacrosDep = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.33.2" % "compile-internal"
+  // val jsoniterVersion = "2.33.2"
+  // val jsoniterMacrosDep = "com.github.plokhotnyuk.jsoniter-scala" %% "jsoniter-scala-macros" % "2.33.2" % "compile-internal"
 
   override def requires = sbtassembly.AssemblyPlugin &&YagaPlugin
   override def trigger = allRequirements
@@ -40,7 +40,7 @@ object YagaAwsLambdaPlugin extends AutoPlugin {
         project.settings(
           libraryDependencies ++= Seq(
             "org.virtuslab" %% "yaga-aws-lambda-sdk" % yagaAwsLambdaVersion,
-            jsoniterMacrosDep
+            //jsoniterMacrosDep
           ),
           yagaAwsLambdaRuntime := "java21",
           yagaAwsDeployableLambdaArtifact := yagaAwsLambdaAssembly.value,
@@ -55,7 +55,7 @@ object YagaAwsLambdaPlugin extends AutoPlugin {
           .settings(
             libraryDependencies ++= Seq(
               "org.virtuslab" %% "yaga-aws-lambda-sdk_sjs1" % yagaAwsLambdaVersion, // TODO use %%%
-              jsoniterMacrosDep
+              //jsoniterMacrosDep
             ),
             yagaAwsLambdaRuntime := "nodejs22.x",
             yagaAwsLambdaHandlerClassName := handlerClass,
