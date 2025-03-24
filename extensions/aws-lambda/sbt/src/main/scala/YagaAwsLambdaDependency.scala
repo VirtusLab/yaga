@@ -43,9 +43,10 @@ case class YagaAwsLambdaProjectDependency(
       yaga.sbt.YagaPlugin.autoImport.yagaGeneratedSources ++= codegenTask.value,
 
       libraryDependencies ++= {
-        val jsoniterDeps = Seq(YagaAwsLambdaPlugin.jsoniterMacrosDep)
+        //val jsoniterDeps = Seq(YagaAwsLambdaPlugin.jsoniterMacrosDep)
         val infraDeps = if (withInfra) Seq(YagaAwsLambdaPlugin.yagaBesomAwsSdkDep) else Seq.empty
-        jsoniterDeps ++ infraDeps
+        //jsoniterDeps ++ infraDeps
+        infraDeps
       }
     )
   }
