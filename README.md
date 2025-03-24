@@ -10,7 +10,7 @@ Infrastructure from Code with Pulumi and Scala
   - [pulumi](https://www.pulumi.com/docs/iac/download-install/)
   - [besom](https://virtuslab.github.io/besom/docs/getting_started/)
     ```shell
-    pulumi plugin install language scala 0.3.2 --server github://api.github.com/VirtusLab/besom
+    pulumi plugin install language scala 0.4.0-SNAPSHOT --server github://api.github.com/VirtusLab/besom
     ```
 
 ### Publish local by running:
