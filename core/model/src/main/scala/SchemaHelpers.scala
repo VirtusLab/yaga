@@ -16,7 +16,11 @@ class SchemaHelpers:
       case '[Double] => FieldType.Double
       case '[String] => FieldType.String
       case '[Unit] => FieldType.Struct()
-      // TODO handle optionals, arrays and other(?) built-in types
+      case '[Array[t]] => FieldType.Array(getFieldType(tpe.typeArgs.head))
+      case '[Seq[t]] => FieldType.Array(getFieldType(tpe.typeArgs.head))
+      case '[List[t]] => FieldType.Array(getFieldType(tpe.typeArgs.head))
+      case '[Option[t]] => FieldType.Optional(getFieldType(tpe.typeArgs.head))
+      // TODO handle sum types, maps and other collections, and other(?) built-in types
       case _ =>
         val caseClassSymbol = tpe.dealias.typeSymbol // TODO should be `.dealiasKeepOpaques` but it's not available in LTS
 
