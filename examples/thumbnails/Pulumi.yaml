@@ -1,0 +1,3 @@
+name: thumbnails
+runtime: scala
+description: Simple AWS infrastructure with s3 and lambdas
