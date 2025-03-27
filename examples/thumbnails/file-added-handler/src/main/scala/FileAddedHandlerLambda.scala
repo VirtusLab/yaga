@@ -9,11 +9,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 import yaga.example.eventnotifications.S3EventNotification
 
-case class Config(
-  imageProcessorLambda: LambdaHandle[yaga.example.ThumbnailCreationRequest, Unit],
+case class TriggerConfig(
+  imageProcessorLambda: LambdaHandle[CreateThumbnail, Unit],
 ) derives JsonFormat
 
-class FileAddedHandlerLambda extends LambdaAsyncHandler[Config, S3EventNotification, Unit]:
+class FileAddedHandlerLambda extends LambdaAsyncHandler[TriggerConfig, S3EventNotification, Unit]:
   val lambdaClient = LambdaClient()
 
   override def handleInput(input: S3EventNotification) =
@@ -29,16 +29,16 @@ class FileAddedHandlerLambda extends LambdaAsyncHandler[Config, S3EventNotificat
       if objectKey.endsWith(".png") then
         println(s"Processing image: $objectKey in bucket: $bucketName with dimensions: $width x $height")
 
-        val payload = ThumbnailCreationRequest(
+        val createThumbnail = CreateThumbnail(
           bucketName = bucketName,
           objectKey = objectKey,
           width = width,
           height = height
         )
 
-        println("Triggering image processor lambda with payload: " + payload)
+        println("Triggering image processor lambda with payload: " + createThumbnail)
 
-        lambdaClient.triggerEvent(config.imageProcessorLambda, payload)
+        lambdaClient.triggerEvent(config.imageProcessorLambda, createThumbnail)
       else
         Future.successful(println(s"Skipping non-png file: $objectKey"))
 

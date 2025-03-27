@@ -1,13 +1,14 @@
 import besom.*
 import besom.json.json
-import besom.api.aws
 import besom.api.aws.{iam, s3, lambda}
+import file_added.yaga.example.FileAddedHandlerLambda
+import file_added.yaga.example.TriggerConfig
+import image_processor.yaga.example.ImageProcessorLambda
 
 @main def main = Pulumi.run {
-
   val bucket = s3.BucketV2("my-bucket")
 
-  val imageProcessorRole = aws.iam.Role("imageProcessorLambdaRole", aws.iam.RoleArgs(
+  val imageProcessorRole = iam.Role("imageProcessorLambdaRole", iam.RoleArgs(
     assumeRolePolicy = json"""{
       "Version": "2012-10-17",
       "Statement": [{
@@ -19,7 +20,7 @@ import besom.api.aws.{iam, s3, lambda}
     managedPolicyArns = List(iam.enums.ManagedPolicy.AWSLambdaBasicExecutionRole.value)
   ))
 
-  val imageProcessorPolicy = aws.iam.Policy("imageProcessorPolicy", aws.iam.PolicyArgs(
+  val imageProcessorPolicy = iam.Policy("imageProcessorPolicy", iam.PolicyArgs(
     policy = json"""{
       "Version": "2012-10-17",
       "Statement": [{
@@ -32,12 +33,12 @@ import besom.api.aws.{iam, s3, lambda}
     }""".map(_.prettyPrint)
   ))
 
-  val imageProcessorPolicyAttachment = iam.RolePolicyAttachment("imageProcessorPolicyAttachment", aws.iam.RolePolicyAttachmentArgs(
+  val imageProcessorPolicyAttachment = iam.RolePolicyAttachment("imageProcessorPolicyAttachment", iam.RolePolicyAttachmentArgs(
     role = imageProcessorRole.name,
     policyArn = imageProcessorPolicy.arn
   ))
 
-  val imageProcessorLambda = image_processor.yaga.example.ImageProcessorLambda(
+  val imageProcessorLambda = ImageProcessorLambda(
     "imageProcessor",
     lambda.FunctionArgs(
       role = imageProcessorRole.arn,
@@ -84,22 +85,19 @@ import besom.api.aws.{iam, s3, lambda}
     policyArn = fileAddedHandlerPolicy.arn
   ))
 
-
-
-  val fileAddedHandlerLambda = file_added.yaga.example.FileAddedHandlerLambda(
+  val fileAddedHandlerLambda = FileAddedHandlerLambda(
     "fileAddedHandler",
     lambda.FunctionArgs(
       role = fileAddedHandlerRole.arn,
       timeout = 30,
     ),
     config = imageProcessorLambda.lambdaHandle.map( handle =>
-      file_added.yaga.example.Config(
+      TriggerConfig(
         imageProcessorLambda = handle
       )
     ),
   )
 
-  // val allowS3InvokeFileAddedHandler = lambda.Permission("allowS3InvokeFileAddedHandler",
   val allowBucket = lambda.Permission("allowS3InvokeFileAddedHandler", lambda.PermissionArgs(
     action = "lambda:InvokeFunction",
     function = fileAddedHandlerLambda.arn,
@@ -107,7 +105,7 @@ import besom.api.aws.{iam, s3, lambda}
     sourceArn = bucket.arn
   ))
 
-  val bucketNotification = aws.s3.BucketNotification("bucketNotification",
+  val bucketNotification = s3.BucketNotification("bucketNotification",
     s3.BucketNotificationArgs(
       bucket = bucket.id,
       lambdaFunctions = List(
