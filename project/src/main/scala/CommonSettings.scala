@@ -7,7 +7,7 @@ object CommonSettings {
   val scala3NextVersion = "3.6.4"
 
   val besomMinorVersion = "0.4"
-  val besomVersion = "0.4.0-SNAPSHOT"
+  val besomVersion = "0.4.0"
   val besomCoreDependency = "org.virtuslab" %% "besom-core" % besomVersion
   def besomProviderDependency(providerName: String, providerVersion: String): ModuleID = {
     val artifactName = s"besom-${providerName}"

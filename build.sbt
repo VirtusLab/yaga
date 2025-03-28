@@ -16,13 +16,27 @@ lazy val root = project
 ////////////////////////////////////////////////////////////
 
 ThisBuild / organization := "org.virtuslab"
-ThisBuild / version := "0.1.0-SNAPSHOT"
+ThisBuild / version := "0.0.2"
 ThisBuild / developers := List(
   Developer(id = "lbialy", name = "Łukasz Biały", email = "lbialy@virtuslab.com", url = url("https://github.com/lbialy")),
   Developer(id = "prolativ", name = "Michał Pałka", email = "mpalka@virtuslab.com", url = url("https://github.com/prolativ"))
 )
 
 ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
+
+ThisBuild / publishTo := {
+  val nexus = "https://oss.sonatype.org/"
+  if (isSnapshot.value)
+    Some("snapshots" at nexus + "content/repositories/snapshots")
+  else
+    Some("releases" at nexus + "service/local/staging/deploy/maven2")
+}
+
+ThisBuild / credentials += Credentials("Sonatype Nexus Repository Manager",
+  "oss.sonatype.org",
+  sys.env("OSSRH_USERNAME"),
+  sys.env("OSSRH_PASSWORD")
+)
 
 ////////////////////////////////////////////////////////////
 // Core
