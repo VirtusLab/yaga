@@ -4,11 +4,11 @@
 
 lazy val root = project
   .in(file("."))
+  .aggregate(`core`, `aws-lambda`)
   .settings(
     name := "yaga",
     publish / skip := true
   )
-  .aggregate(`core`, `aws-lambda`)
 
 
 ////////////////////////////////////////////////////////////
@@ -45,6 +45,9 @@ lazy val `core-sbt` = project
 lazy val `core` = project
   .in(file("core"))
   .aggregate(`core-model`.jvm, `core-model`.js, `core-codegen`, `core-sbt`)
+  .settings(
+    publish / skip := true
+  )
 
 
 ////////////////////////////////////////////////////////////
@@ -76,3 +79,6 @@ lazy val `aws-lambda-sbt` = project
 lazy val `aws-lambda` = project
   .in(file("extensions/aws-lambda"))
   .aggregate(`aws-lambda-sdk`.jvm, `aws-lambda-sdk`.js, `aws-lambda-besom`, `aws-lambda-codegen`, `aws-lambda-sbt`)
+  .settings(
+    publish / skip := true
+  )
