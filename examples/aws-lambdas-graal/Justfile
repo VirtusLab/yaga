@@ -1,0 +1,21 @@
+default:
+	@just --list
+
+export PULUMI_CONFIG_PASSPHRASE := ""
+export BESOM_SBT_MODULE := "infra"
+
+infra-up:
+  #!/usr/bin/env bash
+  pulumi up --stack dev -y
+
+infra-preview:
+  #!/usr/bin/env bash
+  pulumi preview --stack dev
+
+infra-down:
+  #!/usr/bin/env bash
+  pulumi down --stack dev
+
+infra-output:
+  #!/usr/bin/env bash
+  pulumi stack output --stack dev
