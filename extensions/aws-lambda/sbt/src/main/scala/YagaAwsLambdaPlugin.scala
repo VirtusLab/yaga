@@ -26,10 +26,9 @@ object YagaAwsLambdaPlugin extends AutoPlugin {
     // TODO Hide keys from users if they don't have to be set manually
 
     val yagaAwsLambdaRuntime = settingKey[String]("Yaga AWS Lambda runtime") // TODO make it more typesafe
-    val yagaAwsLambdaHandlerClassName = settingKey[String]("Fully qualified name (with package) of yaga AWS Lambda handler class name")
     val yagaAwsLambdaAssembly = taskKey[Path]("Assembled AWS lambda jar")
     val yagaAwsDeployableLambdaArtifact = taskKey[Path]("Deployable AWS lambda artifact")
-    val yagaAwsRunCodegen: TaskKey[Seq[File]] = taskKey[Seq[File]]("Generate code for yaga AWS")
+    val yagaAwsLambdaProxyFiles: TaskKey[Seq[File]] = taskKey[Seq[File]]("Generate code for yaga AWS")
     val yagaAwsLambdaGraalLambdaArchivePath = settingKey[File]("Path to the graal lambda archive")
     val yagaAwsLambdaGraaledImage = taskKey[Path]("Path to the graaled image")
     val yagaAwsLambdaGraalBootstrapFile = taskKey[Path]("Bootstrap file for graaled lambda")
@@ -39,10 +38,8 @@ object YagaAwsLambdaPlugin extends AutoPlugin {
         JvmHelpers.awsJvmLambda(project)
       }
 
-      def awsJsLambda(
-        handlerClass: String
-      ) = {
-        JsHelpers.awsJsLambda(project, handlerClass = handlerClass)
+      def awsJsLambda() = {
+        JsHelpers.awsJsLambda(project)
       }
 
       def awsGraalLambda() = {

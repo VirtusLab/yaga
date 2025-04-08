@@ -4,6 +4,7 @@ import _root_.sbt._
 import _root_.sbt.Keys._
 import org.scalajs.sbtplugin.ScalaJSPlugin
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.*
+import java.nio.file.{Files, Path}
 
 import yaga.sbt.YagaPlugin
 import yaga.sbt.YagaPlugin.autoImport.yagaGeneratedSources
@@ -13,8 +14,7 @@ import YagaAwsLambdaPlugin.autoImport._
 
 private[aws] object JsHelpers {
   def awsJsLambda(
-    project: Project,
-    handlerClass: String
+    project: Project
   ) = {
     project
       .enablePlugins(ScalaJSPlugin)
@@ -23,44 +23,40 @@ private[aws] object JsHelpers {
           "org.virtuslab" %% "yaga-aws-lambda-sdk_sjs1" % yagaAwsLambdaVersion, // TODO use %%%
           //jsoniterMacrosDep
         ),
+        addCompilerPlugin("org.virtuslab" %% "yaga-aws-lambda-compiler-plugin" % "0.1.0-SNAPSHOT"),
         yagaAwsLambdaRuntime := "nodejs22.x",
-        yagaAwsLambdaHandlerClassName := handlerClass,
         scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) },
-        yagaGeneratedSources ++= {
-          val handlerClassName = (project / yagaAwsLambdaHandlerClassName).value
-          val file = (Compile / sourceManaged).value / "yaga-aws-js" / "HandlerProxy.scala"
-          IO.write(file, jsProxyHandlerCode(handlerClassName))
-          Seq(file)
+        yagaAwsLambdaProxyFiles := {
+          implicit val log: Logger = streams.value.log
+          val codegenOutputDir = (Compile / target).value / "yaga" / "aws-lambda" / "js-proxies" 
+          val codegenSources: Seq[Path] = Seq(yagaAwsLambdaAssembly.value)
+          val dependenciesChanged = yagaAwsLambdaAssembly.outputFileChanges.hasChanges
+          if (dependenciesChanged || !Files.exists(codegenOutputDir.toPath)) {
+            CodegenHelpers.generateJsProxyFiles(
+              localJarSources = codegenSources,
+              outputDir = codegenOutputDir.toPath
+            )
+          }
+          
+          (codegenOutputDir ** "*.mjs").get
         },
         yagaAwsDeployableLambdaArtifact := {
+          // TODO Add caching
+          val projectName = (project / name).value
           val fullLinkOutputDir = (Compile / fullLinkJSOutput).value
           val fullLinkMainFile = fullLinkOutputDir / "main.js"
-          val zipFile = (Compile / target).value / "yaga" / "lambda-aws" / "lambda.zip"
-          val zipInputs = Seq(
+          val zipFile = (Compile / target).value / "yaga" / "aws-lambda" / "lambda.zip"
+          val handlerProxyFiles = yagaAwsLambdaProxyFiles.value.map(file => file -> file.name)
+          val zipInputs = handlerProxyFiles ++ Seq(
             fullLinkMainFile -> "index.js"
           )
+          val log = streams.value.log
+          log.info(s"Yaga - AWS Lambda: Packaging deployable AWS Lambda artifact for ${projectName} into ${zipFile}")
+          val formattedZipInputs = zipInputs.map { case (path, name) => s"  * ${path} -> ${name}" }.mkString("\n")
+          log.debug(s"Yaga - AWS Lambda: Creating zip file ${zipFile} with files:\n${formattedZipInputs}")
           sbt.io.IO.zip(zipInputs, zipFile, time = None)
           zipFile.toPath
         },
       )
-  }
-
-  def jsProxyHandlerCode(handlerClassName: String): String = {
-    val handlerInstance = "new com.virtuslab.child_lambda_a.ChildLambdaA"
-    s"""
-       |import scala.scalajs.js
-       |import scala.scalajs.js.annotation.JSExportTopLevel
-       |import scala.scalajs.js.JSConverters._
-       |import scala.concurrent.Future
-       |import scala.concurrent.ExecutionContext.Implicits.global
-       |import yaga.extensions.aws.lambda.LambdaContext
-       |
-       |@JSExportTopLevel("handlerInstance")
-       |val handlerInstance = new $handlerClassName
-       |
-       |@JSExportTopLevel("handler")
-       |def handler(event: js.Any, context: LambdaContext.UnderlyingContext): Any =
-       |  handlerInstance.handleRequest(event, context)
-       |""".stripMargin
   }
 }

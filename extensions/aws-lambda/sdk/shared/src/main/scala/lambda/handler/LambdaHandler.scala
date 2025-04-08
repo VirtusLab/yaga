@@ -5,6 +5,7 @@ import yaga.json.{JsonReader, JsonWriter}
 /*
   TODO: Keep references to these classes in sync with:
     * LambdaApiExtractor
+    * AWS lambda compiler plugin
 */
 
 

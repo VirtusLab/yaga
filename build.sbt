@@ -71,6 +71,10 @@ lazy val `aws-lambda-codegen` = project
   .settings(AwsLambdaSettings.codegenSettings)
   .dependsOn(`core-codegen`)
 
+lazy val `aws-lambda-compiler-plugin` = project
+  .in(file("extensions/aws-lambda/compiler-plugin"))
+  .settings(AwsLambdaSettings.compilerPluginSettings)
+
 lazy val `aws-lambda-sbt` = project
   .in(file("extensions/aws-lambda/sbt"))
   .settings(AwsLambdaSettings.sbtPluginSettings)
@@ -78,7 +82,7 @@ lazy val `aws-lambda-sbt` = project
 
 lazy val `aws-lambda` = project
   .in(file("extensions/aws-lambda"))
-  .aggregate(`aws-lambda-sdk`.jvm, `aws-lambda-sdk`.js, `aws-lambda-besom`, `aws-lambda-codegen`, `aws-lambda-sbt`)
+  .aggregate(`aws-lambda-sdk`.jvm, `aws-lambda-sdk`.js, `aws-lambda-besom`, `aws-lambda-codegen`, `aws-lambda-compiler-plugin`, `aws-lambda-sbt`)
   .settings(
     publish / skip := true
   )

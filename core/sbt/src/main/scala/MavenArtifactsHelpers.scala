@@ -38,7 +38,7 @@ private[sbt] object MavenArtifactsHelpers {
     }
   }
 
-  def runMavenArtifactMainWithArgs(orgName: String, moduleName: String, version: String, mainClass: String, args: Seq[String]): Unit = {
+  def runMavenArtifactMainWithArgs(orgName: String, moduleName: String, version: String, mainClass: String, args: Seq[String])(implicit log: Logger): Unit = {
     val dependencyPaths = jarPathsFromMavenCoordinates(orgName, moduleName, version)
     val commandParts = Seq(
       "java",
@@ -47,6 +47,8 @@ private[sbt] object MavenArtifactsHelpers {
     ) ++ args
 
     import scala.sys.process._
+
+    log.debug("Yaga: Running maven artifact: " + commandParts.map("\'" + _.toString + "\'").mkString(" "))
 
     commandParts.!! // TODO Handle errors
   }

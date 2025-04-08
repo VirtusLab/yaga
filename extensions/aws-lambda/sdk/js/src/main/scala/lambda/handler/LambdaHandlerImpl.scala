@@ -6,6 +6,7 @@ import scala.scalajs.js.annotation.{JSGlobal, JSExport}
 import scala.scalajs.js.JSConverters._
 
 private[lambda] abstract class LambdaHandlerImpl[C, I, O] extends LambdaHandlerBase[C, I, O]:
+  @scala.scalajs.js.annotation.JSExport
   def handleRequest(event: js.Any, context: LambdaContext.UnderlyingContext): js.Promise[Any]
 
   override protected def environmentVariables: Map[String, String] =

@@ -4,16 +4,15 @@ import yaga.codegen.core.extractor.{CodegenSource, ContextSetup, CoursierHelpers
 import yaga.codegen.core.generator.SourcesWriter
 import yaga.codegen.core.generator.SourceFile
 import yaga.codegen.aws.extractor.LambdaApiExtractor
-import yaga.codegen.aws.generator.AwsGenerator
+import yaga.codegen.aws.generator.{ModuleApiGenerator, JsProxiesGenerator}
 
 import tastyquery.Contexts.*
 import tastyquery.Symbols.*
 import java.nio.file.Path
 
 object AwsCodegen:
-  def doCodegen(
+  def sourcesForModuleApi(
     codegenSources: List[CodegenSource],
-    handlerClassFullName: Option[String],
     packagePrefix: String,
     generateInfra: Boolean,
     lambdaArtifactAbsolutePath: Option[Path],
@@ -23,13 +22,9 @@ object AwsCodegen:
 
     val packagePrefixParts = packagePrefix.split('.').toSeq.filter(_.nonEmpty)
 
-    val extractedApi = handlerClassFullName.map { handlerClassName =>
-      LambdaApiExtractor().extractLambdaApi(handlerClassFullName = handlerClassName)
-    }.getOrElse {
-      LambdaApiExtractor().extractLambdaApi(codegenSources = codegenSources)
-    }
+    val extractedApis = LambdaApiExtractor().extractLambdaApis(codegenSources = codegenSources)
 
-    val generator = AwsGenerator(packagePrefixParts, extractedApi)
+    val generator = ModuleApiGenerator(packagePrefixParts, extractedApis)
     
     val modelSources = generator.generateModelSources()
 
@@ -37,20 +32,13 @@ object AwsCodegen:
       if generateInfra then
         lambdaRuntime match
           case Some(runtime @ "java21") =>
-            Seq(
-              generator.generateJvmLambda(jarPath = lambdaArtifactAbsolutePath.get),
-            )
+            generator.generateJvmLambdas(jarPath = lambdaArtifactAbsolutePath.get)
           case Some(runtime @ "nodejs22.x") =>
-            Seq(
-              generator.generateNodejsLambda(deployableArchivePath = lambdaArtifactAbsolutePath.get)
-            )
+            generator.generateNodejsLambdas(deployableArchivePath = lambdaArtifactAbsolutePath.get)
           case Some(runtime @ "graal") =>
-            Seq(
-              generator.generateGraalLambda(deployableArchivePath = lambdaArtifactAbsolutePath.get)
-            )
+            generator.generateGraalLambdas(deployableArchivePath = lambdaArtifactAbsolutePath.get)
           case Some(runtime) =>
             throw Exception(s"Unsupported lambda runtime: $runtime. Should be java21 or nodejs22.x or graal")
-
           case None =>
             throw Exception("Lambda runtime must be specified for infra generation")
       else
@@ -60,18 +48,35 @@ object AwsCodegen:
 
 
   @main
-  def runCodegen(args: String*) =
-    val codegenMainArgs = MainArgsParser.parse(args.toList)
+  def generateModuleApiSources(args: String*) =
+    val codegenMainArgs = ModuleApiCodegenMainArgs.parse(args.toList)
 
-    val sources = doCodegen(
+    val sources = sourcesForModuleApi(
       codegenSources = codegenMainArgs.codegenSources,
-      handlerClassFullName = codegenMainArgs.handlerClassFullName,
       packagePrefix = codegenMainArgs.packagePrefix,
       generateInfra = codegenMainArgs.generateInfra,
       lambdaArtifactAbsolutePath = codegenMainArgs.lambdaArtifactAbsolutePath,
       lambdaRuntime = codegenMainArgs.lambdaRuntime
     )
     val outputDirPath = os.Path(codegenMainArgs.outputDir)
-    val summaryFilePath = codegenMainArgs.summaryFile.map(os.Path(_))
 
-    SourcesWriter().writeSources(outputDirPath, sources, summaryFile = summaryFilePath, cleanUpOutputDir = !codegenMainArgs.noCleanup)
+    SourcesWriter().writeSources(outputDirPath, sources, summaryFile = None, cleanUpOutputDir = true)
+
+  def sourcesForJsProxies(
+    codegenSources: List[CodegenSource],
+  ): Seq[SourceFile] =
+    given Context = ContextSetup.contextFromCodegenSources(codegenSources)
+    val extractedApis = LambdaApiExtractor().extractLambdaApis(codegenSources = codegenSources)
+    val generator = JsProxiesGenerator(extractedApis)
+    generator.generateJsLambdaProxies()
+
+  @main
+  def generateJsProxies(args: String*) =
+    val codegenMainArgs = JsProxiesCodegenMainArgs.parse(args.toList)
+
+    val sources = sourcesForJsProxies(
+      codegenSources = codegenMainArgs.codegenSources
+    )
+    val outputDirPath = os.Path(codegenMainArgs.outputDir)
+
+    SourcesWriter().writeSources(outputDirPath, sources, summaryFile = None, cleanUpOutputDir = true)
