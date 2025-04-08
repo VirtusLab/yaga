@@ -5,19 +5,7 @@ import java.nio.file.Path
 import yaga.sbt.MavenArtifactsHelpers
 
 private[aws] object CodegenHelpers {
-  def runCodegen(localJarSources: Seq[Path], packagePrefix: String, outputDir: Path, withInfra: Boolean, lambdaArtifactAbsolutePath: Option[Path], lambdaRuntime: Option[String], log: Logger): Unit = {
-    val mainArgs = codegenMainArgs(localJarSources, packagePrefix, outputDir, withInfra, lambdaArtifactAbsolutePath, lambdaRuntime)
-
-    log.info(s"Running yaga AWS codegen with args: ${mainArgs.mkString(" ")}")
-
-    MavenArtifactsHelpers.runMavenArtifactMainWithArgs(
-      "org.virtuslab", "yaga-aws-lambda-codegen_3", YagaAwsLambdaPlugin.yagaAwsLambdaVersion,
-      "yaga.codegen.aws.runCodegen",
-      mainArgs
-    )
-  }
-
-  private def codegenMainArgs(localJarSources: Seq[Path], packagePrefix: String, outputDir: Path, withInfra: Boolean, lambdaArtifactAbsolutePath: Option[Path], lambdaRuntime: Option[String]): Seq[String] = {
+  def generateModuleApiSources(localJarSources: Seq[Path], packagePrefix: String, outputDir: Path, withInfra: Boolean, lambdaArtifactAbsolutePath: Option[Path], lambdaRuntime: Option[String])(implicit log: Logger): Unit = {
     val infraFlag =
       if (withInfra)
         Seq("--with-infra")
@@ -36,6 +24,24 @@ private[aws] object CodegenHelpers {
       "--package-prefix", packagePrefix,
       "--output-dir", outputDir.toString,
     ) ++ infraMainArgs
-    mainArgs
+
+    MavenArtifactsHelpers.runMavenArtifactMainWithArgs(
+      "org.virtuslab", "yaga-aws-lambda-codegen_3", YagaAwsLambdaPlugin.yagaAwsLambdaVersion,
+      "yaga.codegen.aws.generateModuleApiSources",
+      mainArgs
+    )
+  }
+
+  def generateJsProxyFiles(localJarSources: Seq[Path], outputDir: Path)(implicit log: Logger): Unit = {
+    val sourcesOptions = localJarSources.flatMap(path => Seq("--local-classpath-jar", path.toString))
+    val mainArgs = sourcesOptions ++ Seq(
+      "--output-dir", outputDir.toString,
+    )
+
+    MavenArtifactsHelpers.runMavenArtifactMainWithArgs(
+      "org.virtuslab", "yaga-aws-lambda-codegen_3", YagaAwsLambdaPlugin.yagaAwsLambdaVersion,
+      "yaga.codegen.aws.generateJsProxies",
+      mainArgs
+    )
   }
 }

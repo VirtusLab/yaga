@@ -9,12 +9,13 @@ import yaga.codegen.core.extractor.ModelExtractor
 import yaga.codegen.aws.extractor.ExtractedLambdaApi
 import scala.meta.XtensionSyntax
 
-class AwsGenerator(packagePrefixParts: Seq[String], lambdaApi: ExtractedLambdaApi):
-  val apiSymbolSet = lambdaApi.modelSymbols.toSet
-  val typeRenderer = TypeRenderer(packagePrefixParts, apiSymbolSet)
+class ModuleApiGenerator(packagePrefixParts: Seq[String], lambdaApis: Seq[ExtractedLambdaApi]):
+  val apiModelSymbolSet = lambdaApis.foldLeft(Set.empty[Symbol])(_ | _.modelSymbols.toSet)
+  val apiModelSymbols = apiModelSymbolSet.toSeq//.sortBy(_.name) TODO
+  val typeRenderer = TypeRenderer(packagePrefixParts, apiModelSymbolSet)
 
   def generateModelSources()(using Context): Seq[SourceFile] =
-    lambdaApi.modelSymbols.flatMap:
+    apiModelSymbols.flatMap:
       case sym: ClassSymbol if sym.isCaseClass =>
         Seq(sourceForCaseClass(sym))
       case sym =>
@@ -57,31 +58,39 @@ class AwsGenerator(packagePrefixParts: Seq[String], lambdaApi: ExtractedLambdaAp
       sourceCode
     )
 
-  def generateJvmLambda(jarPath: Path)(using Context): SourceFile =
-    val lamdaHandler = (lambdaApi.handlerClassPackageParts :+ lambdaApi.handlerClassName).mkString(".") // TODO don't handle this logic here
-    generateLambda(
-      lambdaHandler = lamdaHandler,
-      runtime = "java21",
-      codeArchivePath = jarPath
-    )
+  def generateJvmLambdas(jarPath: Path)(using Context): Seq[SourceFile] =
+    lambdaApis.map: lambdaApi =>
+      val lamdaHandler = (lambdaApi.handlerClassPackageParts :+ lambdaApi.handlerClassName).mkString(".") // TODO don't handle this logic here
+      generateLambda(
+        lambdaApi,
+        lambdaHandler = lamdaHandler,
+        runtime = "java21",
+        codeArchivePath = jarPath
+      )
 
-  def generateNodejsLambda(deployableArchivePath: Path)(using Context): SourceFile =
-    generateLambda(
-      lambdaHandler = "index.handler",
-      runtime = "nodejs22.x",
-      codeArchivePath = deployableArchivePath
-    )
+  def generateNodejsLambdas(deployableArchivePath: Path)(using Context): Seq[SourceFile] =
+    lambdaApis.map: lambdaApi =>
+      val handlerFileName = (lambdaApi.handlerClassPackageParts :+ lambdaApi.handlerClassName).mkString("_") // TODO don't handle this logic here 
+      generateLambda(
+        lambdaApi,
+        lambdaHandler = s"${handlerFileName}.handler",
+        runtime = "nodejs22.x",
+        codeArchivePath = deployableArchivePath
+      )
 
 
-  def generateGraalLambda(deployableArchivePath: Path)(using Context): SourceFile =
-    val lamdaHandler = (lambdaApi.handlerClassPackageParts :+ lambdaApi.handlerClassName).mkString(".") // TODO don't handle this logic here
-    generateLambda(
-      lambdaHandler = lamdaHandler,
-      runtime = "provided.al2023",
-      codeArchivePath = deployableArchivePath
-    )
+  def generateGraalLambdas(deployableArchivePath: Path)(using Context): Seq[SourceFile] =
+    lambdaApis.map: lambdaApi =>
+      val lamdaHandler = (lambdaApi.handlerClassPackageParts :+ lambdaApi.handlerClassName).mkString(".") // TODO don't handle this logic here
+      generateLambda(
+        lambdaApi,
+        lambdaHandler = lamdaHandler,
+        runtime = "provided.al2023",
+        codeArchivePath = deployableArchivePath
+      )
 
   def generateLambda(
+    lambdaApi: ExtractedLambdaApi,
     lambdaHandler: String,
     runtime: String,
     codeArchivePath: Path
@@ -152,5 +161,28 @@ class AwsGenerator(packagePrefixParts: Seq[String], lambdaApi: ExtractedLambdaAp
 
     SourceFile(
       FilePath(packageParts :+ s"${lambdaClassName}.scala"),
+      sourceCode
+    )
+
+  def generateJsLambdaProxies(): Seq[SourceFile] =
+    lambdaApis.map: lambdaApi =>
+      generateJsLambdaProxy(lambdaApi)
+
+  def generateJsLambdaProxy(lambdaApi: ExtractedLambdaApi) =
+    val classFullName = (lambdaApi.handlerClassPackageParts :+ lambdaApi.handlerClassName).mkString(".")
+    val mangledClassFullName = classFullName.toString.split('.').mkString("_")
+
+    val sourceCode =
+      m"""|import { ${mangledClassFullName} as HandlerClass } from "./index.js"
+          |
+          |const handlerInstance = new HandlerClass() 
+          |
+          |export const handler = async(event, context) => {
+          |    return await handlerInstance.handleRequest(event, context)
+          |};
+          |""".stripMargin
+
+    SourceFile(
+      FilePath(List(s"${mangledClassFullName}.mjs")),
       sourceCode
     )

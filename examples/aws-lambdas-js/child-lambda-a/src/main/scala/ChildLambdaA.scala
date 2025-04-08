@@ -8,6 +8,6 @@ case class Bar(foo: Foo) derives JsonFormat
 
 class ChildLambdaA extends LambdaHandler[Unit, Bar, Unit]:
   override def handleInput(event: Bar) =
-    println(s"Received input!!!!: $event")
+    println(s"Received input: $event")
     val upperCased = event.foo.str.toUpperCase
     println(upperCased)

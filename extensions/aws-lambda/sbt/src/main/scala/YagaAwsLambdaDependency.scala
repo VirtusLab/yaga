@@ -18,7 +18,9 @@ case class YagaAwsLambdaProjectDependency(
 ) extends YagaAwsLambdaDependency {
   override def addSelfToProject(baseProject: Project): Project = {
     val codegenTask = Def.task {
-      val outputSubdirectoryName = outputSubdirName.getOrElse((project / name).value)
+      val projectName = (project / name).value
+      val baseProjectName = (baseProject / name).value
+      val outputSubdirectoryName = outputSubdirName.getOrElse(projectName)
       val codegenOutputDir = (baseProject / Compile / sourceManaged).value / "yaga-aws-codegen" / outputSubdirectoryName
 
       val sources: Seq[Path] = Seq(
@@ -28,12 +30,13 @@ case class YagaAwsLambdaProjectDependency(
       val lambdaArtifactPath = (project / yagaAwsDeployableLambdaArtifact).value // TODO retrigger codegen if changed
 
       val dependencyJarChanged = (project / yagaAwsLambdaAssembly).outputFileChanges.hasChanges
-      val log = streams.value.log
+      implicit val log: Logger = streams.value.log
 
       // TODO track changes of codegen parameters
       if (dependencyJarChanged || !Files.exists(codegenOutputDir.toPath)) {
         val runtime = (project / yagaAwsLambdaRuntime).value
-        CodegenHelpers.runCodegen(localJarSources = sources, packagePrefix = packagePrefix, outputDir = codegenOutputDir.toPath, withInfra = withInfra, lambdaArtifactAbsolutePath = Some(lambdaArtifactPath), lambdaRuntime = Some(runtime), log = log)
+        log.info(s"Yaga - AWS Lambda: Generating module API sources from ${projectName} for ${baseProjectName}")
+        CodegenHelpers.generateModuleApiSources(localJarSources = sources, packagePrefix = packagePrefix, outputDir = codegenOutputDir.toPath, withInfra = withInfra, lambdaArtifactAbsolutePath = Some(lambdaArtifactPath), lambdaRuntime = Some(runtime))
       }
 
       (codegenOutputDir ** "*.scala").get

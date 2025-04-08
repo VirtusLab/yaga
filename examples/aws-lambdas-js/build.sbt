@@ -4,17 +4,13 @@ ThisBuild / scalaVersion := "3.3.5"
 ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 
 lazy val childLambdaA = project.in(file("child-lambda-a"))
-  .awsJsLambda(
-    handlerClass = "com.virtuslab.child_lambda_a.ChildLambdaA"
-  )
+  .awsJsLambda()
 
 lazy val childLambdaB = project.in(file("child-lambda-b"))
-  .awsJsLambda(
-    handlerClass = "com.virtuslab.child_lambda_b.ChildLambdaB"
-  )
+  .awsJsLambda()
 
 lazy val parentLambda = project.in(file("parent-lambda"))
-  .awsJsLambda(handlerClass = "com.virtuslab.parent_lambda.ParentLambda")
+  .awsJsLambda()
   .withYagaDependencies(
     childLambdaA.awsLambdaModel(),
     childLambdaB.awsLambdaModel()

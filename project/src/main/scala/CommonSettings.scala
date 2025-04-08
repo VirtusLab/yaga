@@ -23,15 +23,15 @@ object CommonSettings {
     scalaVersion := scala3LTSVersion,
   )
 
+  val codegenModuleSettings = Seq(
+    scalaVersion := scala3NextVersion,
+  )
+
   val compilerPluginModuleSettings = Seq(
     scalaVersion := scala3LTSVersion,
     libraryDependencies ++= Seq(
       "org.scala-lang" %% "scala3-compiler" % scala3LTSVersion
     )
-  )
-
-  val codegenModuleSettings = Seq(
-    scalaVersion := scala3NextVersion,
   )
 
   val sbtPluginModuleSettings = Seq(

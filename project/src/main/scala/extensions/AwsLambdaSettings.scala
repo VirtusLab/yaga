@@ -34,6 +34,10 @@ object AwsLambdaSettings {
     )
   )
 
+  val compilerPluginSettings = CommonSettings.compilerPluginModuleSettings ++ Seq(
+    name := "yaga-aws-lambda-compiler-plugin"
+  )
+
   val sbtPluginSettings = CommonSettings.sbtPluginModuleSettings ++ Seq(
     name := "sbt-yaga-aws-lambda",
     libraryDependencies ++= Seq(

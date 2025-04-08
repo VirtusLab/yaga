@@ -41,7 +41,7 @@ class LambdaApiExtractor():
     val modelExtractor = AwsModelExtractor()
     modelExtractor.collect(rootTypes)
 
-  def extractLambdaApi(codegenSources: Seq[CodegenSource])(using Context): ExtractedLambdaApi =
+  def extractLambdaApis(codegenSources: Seq[CodegenSource])(using Context): Seq[ExtractedLambdaApi] =
     // TODO remove duplication with LambdaHandlerUtils.scala
 
     val jarUrls = ContextSetup.getSourcesClasspath(codegenSources).map { path =>
@@ -55,11 +55,5 @@ class LambdaApiExtractor():
     val lambdaAsyncHandlerSubclasses = new ClassGraph().overrideClassLoaders(jarClassLoader).enableClassInfo.scan().getSubclasses(lambdaAsyncHandlerBaseClassFullName).asScala.toList
 
     val lambdaHandlerSubclasses = lambdaSyncHandlerSubclasses ++ lambdaAsyncHandlerSubclasses
-    lambdaHandlerSubclasses match
-      case Nil =>
-        throw Exception(s"No lambda handler found in codegen sources $codegenSources")
-      case handler :: Nil =>
-        extractLambdaApi(handlerClassFullName = handler.getName)
-      case handlers =>
-        val handlerNames = handlers.map(_.getName).mkString(", ")
-        throw Exception(s"Multiple lambda handlers found in codegen sources $codegenSources: ${handlerNames}")
+    lambdaHandlerSubclasses.map: handler =>
+      extractLambdaApi(handlerClassFullName = handler.getName)
