@@ -1,0 +1,3 @@
+name: docker-hello
+runtime: scala
+description: Simple Scala service app in docker
