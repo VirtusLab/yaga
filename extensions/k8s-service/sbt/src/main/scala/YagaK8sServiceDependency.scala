@@ -36,7 +36,7 @@ case class YagaK8sServiceDependency(
       // TODO track changes of codegen parameters
 
       if (dependencyJarsChanged || !Files.exists(codegenOutputDir.toPath)) {
-        log.info(s"Yaga - k8s serviceYaga - k8s service: Generating module API sources from ${projectName} for ${baseProjectName}")
+        log.info(s"Yaga - k8s service: Generating module API sources from ${projectName} for ${baseProjectName}")
         CodegenHelpers.generateModuleApiSources(localJarSources = sources, packagePrefix = packagePrefix, outputDir = codegenOutputDir.toPath, withInfra = withInfra, dockerContextPath = dockerContextPath)
       }
 
