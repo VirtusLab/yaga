@@ -143,10 +143,7 @@ object ModelExtractor:
   def ownerPackageNamesChain(sym: Symbol | Null): Seq[String] =
     sym match
       case pkg: PackageSymbol =>
-        if pkg.isRootPackage then
-          Seq.empty
-        else
-          ownerPackageNamesChain(sym.owner) :+ pkg.name.name
+        pkg.fullName.path.map(_.name)
       case _ =>
         throw Exception(s"Unsupported non-package symbol ${sym}")
     

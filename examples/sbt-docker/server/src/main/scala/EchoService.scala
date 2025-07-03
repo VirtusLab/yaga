@@ -1,12 +1,18 @@
+package example
+
 import sttp.tapir._
 import sttp.tapir.server.netty._
 import sttp.tapir.server.netty.NettyFutureServer
-import sttp.tapir.json.circe._
-import io.circe.generic.auto._
+// import sttp.tapir.json.circe._
+//import io.circe.generic.auto._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object Server {
+import yaga.k8sservice.ServiceApp
+
+case class ServerConfig()
+
+object EchoService extends ServiceApp[ServerConfig] {
   // Define the request and response data models
   case class Message(text: String)
 

@@ -50,6 +50,7 @@ private[sbt] object MavenArtifactsHelpers {
 
     log.debug("Yaga: Running maven artifact: " + commandParts.map("\'" + _.toString + "\'").mkString(" "))
 
-    commandParts.!! // TODO Handle errors
+    val processOutput = commandParts.!!
+    log.debug(s"Yaga: Maven artifact runtime output:\n${processOutput}")
   }
 }

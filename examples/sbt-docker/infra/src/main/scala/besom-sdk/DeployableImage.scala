@@ -2,7 +2,8 @@ package yaga.kubernetes
 
 import besom.*
 
-trait DeployableImage[A <: ServiceApp]:
+// TODO Reintroduce type bound?
+trait DeployableImage[A /* <: ServiceApp */]:
   def imageReference: Output[String]
 
 object DeployableImage:

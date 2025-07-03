@@ -86,3 +86,33 @@ lazy val `aws-lambda` = project
   .settings(
     publish / skip := true
   )
+
+
+////////////////////////////////////////////////////////////
+// K8s Service
+////////////////////////////////////////////////////////////
+
+lazy val `k8s-service-sdk` = project
+  .in(file("extensions/k8s-service/sdk"))
+  .settings(K8sServiceSettings.sdkSettings)
+  .dependsOn(`core-model`.jvm)
+
+lazy val `k8s-service-besom` = project
+  .in(file("extensions/k8s-service/besom"))
+  .settings(K8sServiceSettings.besomSettings)
+  .dependsOn(`k8s-service-sdk`)
+
+lazy val `k8s-service-codegen` = project
+  .in(file("extensions/k8s-service/codegen"))
+  .settings(K8sServiceSettings.codegenSettings)
+  .dependsOn(`core-codegen`)
+
+lazy val `k8s-service-sbt` = project
+  .in(file("extensions/k8s-service/sbt"))
+  .settings(K8sServiceSettings.sbtPluginSettings)
+  .dependsOn(`core-sbt`)
+
+lazy val `k8s-service` = project
+  .in(file("extensions/k8s-service"))
+  .aggregate(`k8s-service-sdk`, `k8s-service-besom`, `k8s-service-codegen`, `k8s-service-sbt`)
+  .settings(publish / skip := true)

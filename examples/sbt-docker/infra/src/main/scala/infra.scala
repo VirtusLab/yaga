@@ -9,6 +9,8 @@ import besom.json.json
 
 import yaga.kubernetes.dockerSecretFromEcrToken
 
+import example.{EchoService, EchoServiceArgs}
+
 @main def main = Pulumi.run:
 
   // User's config (required)
@@ -30,7 +32,7 @@ import yaga.kubernetes.dockerSecretFromEcrToken
     aws.ecr.GetAuthorizationTokenArgs()
   )
 
-  val image = MyServiceApp.imageResource(
+  val image = EchoService.imageResource(
     resourceName = "image",
     fullImageName = imageFullName,
     registry = docker.inputs.RegistryArgs(
@@ -43,15 +45,15 @@ import yaga.kubernetes.dockerSecretFromEcrToken
   val dockerSecret = dockerSecretFromEcrToken(resourceName = "docker-secret", namespace = namespaceName, secretName = "docker-secret", registry = registryName, authToken = creds.authorizationToken)
 
 
-  val myServiceApp = MyServiceApp("my-app", MyServiceAppArgs(
+  val serviceApp = EchoService("my-app", EchoServiceArgs(
     appName = "my-app",
     namespace = namespaceName,
     image = image,
     imageSecrets = dockerSecret
   ))
 
-  Stack(namespace, dockerSecret, image, myServiceApp).exports(
-    serviceName = myServiceApp.flatMap(_.serviceName),
-    deploymentName = myServiceApp.flatMap(_.deploymentName),
-    namespace = myServiceApp.flatMap(_.namespace)
+  Stack(namespace, dockerSecret, image, serviceApp).exports(
+    serviceName = serviceApp.flatMap(_.serviceName),
+    deploymentName = serviceApp.flatMap(_.deploymentName),
+    namespace = serviceApp.flatMap(_.namespace)
   )

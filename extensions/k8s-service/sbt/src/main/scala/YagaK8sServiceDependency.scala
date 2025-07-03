@@ -1,4 +1,4 @@
-package yaga.sbt.kubernetes
+package yaga.sbt.k8sservice
 
 import sbt._
 import sbt.Keys._
@@ -27,15 +27,16 @@ case class YagaK8sServiceDependency(
 
       implicit val log: Logger = streams.value.log
 
-      // TODO: should Docker / stagingDirectory be enough here given that we trigger staging later?
-      val dockerContextPath = (project / Docker / stage).value.toPath
+      // TODO should Docker / stagingDirectory be enough here given that we trigger staging later?
+      // TODO don't evaluate if withInfra == false
+      val dockerContextPath = Some((project / Docker / stage).value.toPath)
       // TODO should we somehow check if the path itself was changed?
 
 
-
       // TODO track changes of codegen parameters
+
       if (dependencyJarsChanged || !Files.exists(codegenOutputDir.toPath)) {
-        log.info(s"Yaga - k8s service: Generating module API sources from ${projectName} for ${baseProjectName}")
+        log.info(s"Yaga - k8s serviceYaga - k8s service: Generating module API sources from ${projectName} for ${baseProjectName}")
         CodegenHelpers.generateModuleApiSources(localJarSources = sources, packagePrefix = packagePrefix, outputDir = codegenOutputDir.toPath, withInfra = withInfra, dockerContextPath = dockerContextPath)
       }
 
@@ -48,13 +49,9 @@ case class YagaK8sServiceDependency(
       libraryDependencies ++= {
         val infraDeps =
           if (withInfra)
-            Seq( // TODO
-              "org.virtuslab" %% "besom-core" % "0.5.0-SNAPSHOT",
-              "org.virtuslab" %% "besom-docker" % "4.6.2-core.0.5-SNAPSHOT",
-              "org.virtuslab" %% "besom-aws" % "6.73.0-core.0.5-SNAPSHOT",
-              "org.virtuslab" %% "besom-kubernetes" % "4.22.1-core.0.5-SNAPSHOT"
+            Seq(
+              YagaK8sServicePlugin.yagaK8sServiceBesomDep,
             )
-            // Seq(YagaAwsLambdaPlugin.yagaBesomK8sServiceSdkDep)
           else
             Seq.empty
         infraDeps
