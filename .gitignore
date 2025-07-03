@@ -15,7 +15,7 @@ target/
 **/Pulumi.*.yaml
 metals.sbt
 
-project/BesomPlugin.scala
+**/project/BesomPlugin.scala
 
 .out/
 
