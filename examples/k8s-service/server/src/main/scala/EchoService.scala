@@ -9,8 +9,11 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import yaga.k8sservice.ServiceApp
+import besom.json.*
 
-case class ServerConfig()
+case class ServerConfig(
+  myConfigValue: String
+) derives JsonReader
 
 object EchoService extends ServiceApp[ServerConfig] {
   // Define the request and response data models
@@ -23,7 +26,7 @@ object EchoService extends ServiceApp[ServerConfig] {
       .in(stringBody)
       .out(stringBody)
 
-  def main(args: Array[String]): Unit = {
+  override def runService(runConfig: ServerConfig): Unit = {
     // Define the server logic
     val echoServerEndpoint = echoEndpoint.serverLogic { msg =>
       Future.successful(Right(msg)) // Echo back the input
@@ -38,6 +41,7 @@ object EchoService extends ServiceApp[ServerConfig] {
 
     // After starting, block main thread to prevent exit
     binding.foreach { _ =>
+      println(s"Configured with value: ${runConfig.myConfigValue}")
       println("🚀 Echo server running on http://localhost:8080/echo !!!!!")
     }
   }

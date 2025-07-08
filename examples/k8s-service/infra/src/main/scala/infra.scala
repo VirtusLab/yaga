@@ -9,7 +9,7 @@ import besom.json.json
 
 import yaga.kubernetes.dockerSecretFromEcrToken
 
-import example.{EchoService, EchoServiceArgs}
+import example.{EchoService, EchoServiceArgs, ServerConfig}
 
 @main def main = Pulumi.run:
 
@@ -49,7 +49,10 @@ import example.{EchoService, EchoServiceArgs}
     appName = "my-app",
     namespace = namespaceName,
     image = image,
-    imageSecrets = dockerSecret
+    imageSecrets = dockerSecret,
+    runConfig = ServerConfig(
+      myConfigValue = "Sample config value"
+    )
   ))
 
   Stack(namespace, dockerSecret, image, serviceApp).exports(
