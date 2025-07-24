@@ -7,5 +7,6 @@ case class ExtractedServiceAppApi(
   serviceAppClassPackageParts: Seq[String],
   serviceAppClassName: String,
   serviceAppConfigType: Type,
-  modelSymbols: Seq[Symbol]
+  modelSymbols: Seq[Symbol],
+  openApiSpecYaml: String
 )

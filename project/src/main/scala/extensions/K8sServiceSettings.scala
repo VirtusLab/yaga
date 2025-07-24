@@ -3,7 +3,15 @@ import sbt.Keys._
 
 object K8sServiceSettings {
   val sdkSettings = CommonSettings.sdkModuleSettings ++ Seq(
-    name := "yaga-k8s-service-sdk"
+    name := "yaga-k8s-service-sdk",
+    libraryDependencies ++= Seq(
+      "com.softwaremill.sttp.tapir" %% "tapir-core" % "1.11.35",
+      "com.softwaremill.sttp.tapir" %% "tapir-netty-server"   % "1.11.35", // TODO avoid this dependency for core SDK by splitting modules?
+
+      // TODO Don't require these depencies by moving the logic of printing OpenAPI spec to the codegen module? 
+      "com.softwaremill.sttp.tapir" %% "tapir-openapi-docs" % "1.11.35",
+      "com.softwaremill.sttp.apispec" %% "openapi-circe-yaml" % "0.11.9"
+    )
   )
 
   val besomSettings = CommonSettings.besomModuleSettings ++ Seq(
