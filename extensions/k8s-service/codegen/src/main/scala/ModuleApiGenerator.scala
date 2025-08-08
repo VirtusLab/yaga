@@ -94,7 +94,6 @@ class ModuleApiGenerator(packagePrefixParts: Seq[String], serviceAppApis: Seq[Ex
           |
           |@yaga.k8sservice.ServerApiSchema(${resourceClassName}.serverApiSpecYaml)
           |case class ${resourceArgsClassName} private(
-          |  appName: Output[String],
           |  namespace: Output[String],
           |  image: Output[${resourceClassName}.Image],
           |  imageSecrets: Output[kubernetes.core.v1.Secret],
@@ -103,13 +102,11 @@ class ModuleApiGenerator(packagePrefixParts: Seq[String], serviceAppApis: Seq[Ex
           |
           |object ${resourceArgsClassName} {
           |  def apply(
-          |    appName: Input[String],
           |    namespace: Input[String],
           |    image: Input[${resourceClassName}.Image],
           |    imageSecrets: Input[kubernetes.core.v1.Secret],
           |    runConfig: Input[${resourceClassName}.RunConfig]${defaultConfigValueSnippet}
           |  ): ${resourceArgsClassName} = new ${resourceArgsClassName}(
-          |    appName = appName.asOutput(),
           |    namespace = namespace.asOutput(),
           |    image = image.asOutput(),
           |    imageSecrets = imageSecrets.asOutput(),
@@ -157,7 +154,7 @@ class ModuleApiGenerator(packagePrefixParts: Seq[String], serviceAppApis: Seq[Ex
           |  )(using Context): Output[${resourceClassName}] = {
           |    val typ: ResourceType = "yaga:custom:${resourceClassName}" // TODO
           |
-          |    val appLabel = args.appName
+          |    val appLabel = name
           |
           |    val targetPort = 8080 // TODO
           |
@@ -172,7 +169,7 @@ class ModuleApiGenerator(packagePrefixParts: Seq[String], serviceAppApis: Seq[Ex
           |    besom.component(name, typ, opts(using ResourceOptsVariant.Component)) {
           |      val basicDeploymentArgs = kubernetes.apps.v1.DeploymentArgs(
           |        metadata = kubernetes.meta.v1.inputs.ObjectMetaArgs(
-          |          name = s"$${args.appName}-deployment",
+          |          name = p"$${name}-deployment",
           |          namespace = args.namespace
           |        ),
           |        spec = kubernetes.apps.v1.inputs.DeploymentSpecArgs(
@@ -199,11 +196,11 @@ class ModuleApiGenerator(packagePrefixParts: Seq[String], serviceAppApis: Seq[Ex
           |
           |      val deploymentArgs = basicDeploymentArgs
           |
-          |      val deployment = kubernetes.apps.v1.Deployment("deployment", deploymentArgs)
+          |      val deployment = kubernetes.apps.v1.Deployment(s"$${name}-deployment", deploymentArgs)
           |
           |      val basicServiceArgs = kubernetes.core.v1.ServiceArgs(
           |        metadata = kubernetes.meta.v1.inputs.ObjectMetaArgs(
-          |          name = s"$${args.appName}-service",
+          |          name = p"$${name}-service",
           |          namespace = args.namespace
           |        ),
           |        spec = kubernetes.core.v1.inputs.ServiceSpecArgs(
@@ -226,7 +223,7 @@ class ModuleApiGenerator(packagePrefixParts: Seq[String], serviceAppApis: Seq[Ex
           |
           |      val basicServiceAccountArgs = kubernetes.core.v1.ServiceAccountArgs(
           |        metadata = kubernetes.meta.v1.inputs.ObjectMetaArgs(
-          |          name = args.appName,
+          |          name = name,
           |          namespace = args.namespace
           |        )
           |      )
@@ -235,10 +232,10 @@ class ModuleApiGenerator(packagePrefixParts: Seq[String], serviceAppApis: Seq[Ex
           |
           |      val serviceArgs = basicServiceArgs
           |
-          |      val service = kubernetes.core.v1.Service("service", serviceArgs)
+          |      val service = kubernetes.core.v1.Service(s"$${name}-service", serviceArgs)
           |
           |      new ${resourceClassName}(
-          |        appName = args.appName,
+          |        appName = Output(name),
           |        serviceName = service.metadata.name,
           |        deploymentName = deployment.metadata.name,
           |        namespace = args.namespace,

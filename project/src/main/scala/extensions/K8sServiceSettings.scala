@@ -6,7 +6,10 @@ object K8sServiceSettings {
     name := "yaga-k8s-service-sdk",
     libraryDependencies ++= Seq(
       "com.softwaremill.sttp.tapir" %% "tapir-core" % "1.11.35",
-      "com.softwaremill.sttp.tapir" %% "tapir-netty-server"   % "1.11.35", // TODO avoid this dependency for core SDK by splitting modules?
+
+      // TODO avoid this dependency for core SDK by splitting modules?
+      // Newer versions (at least up to 1.11.41) cause a problem by introducing a transitive dependency on io.netty:netty-buffer with version higher than 4.1.100.Final, which leads to an exception at runtime
+      "com.softwaremill.sttp.tapir" %% "tapir-netty-server" % "1.10.8",
 
       // TODO Don't require these depencies by moving the logic of printing OpenAPI spec to the codegen module? 
       "com.softwaremill.sttp.tapir" %% "tapir-openapi-docs" % "1.11.35",

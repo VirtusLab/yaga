@@ -56,7 +56,6 @@ import example.proxy.{ProxyService, ProxyServiceArgs}
   val dockerSecret = dockerSecretFromEcrToken(resourceName = "docker-secret", namespace = namespaceName, secretName = "docker-secret", registry = registryName, authToken = creds.authorizationToken)
 
   val echoApp = EchoService("echo-app", EchoServiceArgs(
-    appName = "echo-app",
     namespace = namespaceName,
     image = echoImage,
     imageSecrets = dockerSecret,
@@ -64,7 +63,6 @@ import example.proxy.{ProxyService, ProxyServiceArgs}
   ))
 
   val proxyApp = ProxyService("proxy-app", ProxyServiceArgs(
-    appName = "proxy-app",
     namespace = namespaceName,
     image = proxyImage,
     imageSecrets = dockerSecret,

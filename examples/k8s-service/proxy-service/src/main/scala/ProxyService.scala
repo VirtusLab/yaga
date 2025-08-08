@@ -19,7 +19,7 @@ import example.echo.EchoEndpoints
 
 object ProxyService extends NettyFutureServerApp[Unit]:
   override def serverEndpoints(config: Unit): List[ServerEndpoint] =
-    val echoServiceUrl = "http://server:8080" // TODO update, then don't hardcode
+    val echoServiceUrl = "http://echo-app-service:8080" // TODO Don't hardcode
 
     val backend = HttpURLConnectionBackend()
 
