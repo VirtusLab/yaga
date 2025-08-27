@@ -22,7 +22,8 @@ object Codegen:
     val modelSources = generator.generateModelSources()
     val infraSources = 
       if generateInfra then
-        generator.generateServiceAppResourceClasses(dockerContextPath = dockerContextAbsolutePath.get)
+        generator.generateServiceAppResourceClasses(dockerContextPath = dockerContextAbsolutePath.get) ++
+        generator.generateSourcesForSchemaableTypes()
       else
         Seq.empty
 

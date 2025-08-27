@@ -16,6 +16,7 @@ case class ServerConfig(
 object EchoService extends NettyFutureServerApp[ServerConfig]:
   override def serverEndpoints(config: ServerConfig): List[ServerEndpoint] =
     val echoServerEndpoint = EchoEndpoints.echoEndpoint.serverLogic { msg =>
+    // val echoServerEndpoint = EchoEndpoints.echo1Endpoint.serverLogic { msg =>
       Future.successful(Right(msg.toUpperCase)) // Echo back the input in upper case
     }
 

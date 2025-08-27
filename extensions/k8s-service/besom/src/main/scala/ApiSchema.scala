@@ -1,6 +1,7 @@
 package yaga.k8sservice
 
-import scala.annotation.ConstantAnnotation
+trait ServerApiSchema[A]:
+  type Schema <: String & Singleton
 
-class ServerApiSchema(val schema: String) extends ConstantAnnotation
-class ClientApiSchema(val schema: String) extends ConstantAnnotation
+trait ClientApiSchema[A]:
+  type Schema <: String & Singleton

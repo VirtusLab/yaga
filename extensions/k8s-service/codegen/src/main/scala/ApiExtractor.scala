@@ -5,14 +5,15 @@ import tastyquery.Symbols.*
 import tastyquery.Types.*
 import io.github.classgraph.ClassGraph
 import scala.jdk.CollectionConverters.*
-import yaga.codegen.core.extractor.{CodegenSource, ContextSetup, ModelExtractor}
+import yaga.codegen.core.extractor.{CodegenSource, ContextSetup, ModelExtractor as CoreModelExtractor}
+import yaga.codegen.k8sservice.ModelExtractor
 
 class ApiExtractor():
   val serviceAppBaseClassFullName = "yaga.k8sservice.ServiceApp"
 
   def extractServiceAppApi(serviceAppClassFullName: String, classLoader: ClassLoader)(using Context): ExtractedServiceAppApi =
     val serviceAppClass = ctx.findTopLevelModuleClass(serviceAppClassFullName.stripSuffix("$")) // TODO handle case when class is not found, e.g. for nested classes; does the entry point have to be a (module) object?
-    val serviceAppClassPackageParts = ModelExtractor.ownerPackageNamesChain(serviceAppClass.owner)
+    val serviceAppClassPackageParts = CoreModelExtractor.ownerPackageNamesChain(serviceAppClass.owner)
     val serviceAppClassName = serviceAppClass.name.toString.stripSuffix("$") // TODO should this work for both modules and classes/traits?
 
     val rootTypes = serviceAppClass.parents.collectFirst:
@@ -26,12 +27,15 @@ class ApiExtractor():
 
     val openApiSpecYaml = extractOpenApiSpecYaml(serviceAppClassFullName, classLoader)
 
+    val referencedSchemaableSymbols = ModelExtractor().collectSchemaableTypes(rootTypes)
+
     ExtractedServiceAppApi(
       serviceAppClassPackageParts = serviceAppClassPackageParts,
       serviceAppClassName = serviceAppClassName,
       serviceAppConfigType = configType,
       modelSymbols = modelSymbols,
-      openApiSpecYaml = openApiSpecYaml
+      openApiSpecYaml = openApiSpecYaml,
+      referencedSchemaableSymbols = referencedSchemaableSymbols
     )
 
   private def extractReferencedSymbols(rootTypes: Seq[Type])(using Context): Set[ClassSymbol] =

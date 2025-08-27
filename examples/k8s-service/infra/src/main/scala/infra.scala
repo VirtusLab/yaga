@@ -9,12 +9,12 @@ import besom.json.json
 
 import yaga.kubernetes.dockerSecretFromEcrToken
 
-import example.echo.{EchoService, EchoServiceArgs, ServerConfig}
-import example.proxy.{ProxyService, ProxyServiceArgs}
+import example.echo.{EchoService, EchoServiceArgs, ServerConfig as EchoServerConfig}
+import example.proxy.{ProxyService, ProxyServiceArgs, ServerConfig as ProxyServerConfig}
 
 @main def main = Pulumi.run:
 
-  // User's config (required)
+  // User's config (required) -- TODO extract to stack config where applicable
 
   val namespaceName = "my-application"
   val registryName = "730335225485.dkr.ecr.eu-north-1.amazonaws.com"
@@ -59,14 +59,23 @@ import example.proxy.{ProxyService, ProxyServiceArgs}
     namespace = namespaceName,
     image = echoImage,
     imageSecrets = dockerSecret,
-    runConfig = ServerConfig(myConfigValue = "some test value")
+    runConfig = EchoServerConfig(myConfigValue = "some test value")
   ))
 
   val proxyApp = ProxyService("proxy-app", ProxyServiceArgs(
     namespace = namespaceName,
     image = proxyImage,
     imageSecrets = dockerSecret,
-  ))
+    runConfig = 
+      for
+        echoServiceRef <- echoApp.asServiceRef[example.echo.EchoEndpoints]
+      yield
+        ProxyServerConfig(
+          myConfigValue = "some test value",
+          echoService = echoServiceRef
+        )
+    )
+  )
 
   Stack(namespace, dockerSecret, echoImage, echoApp, proxyImage, proxyApp).exports(
     echoServiceName = echoApp.flatMap(_.serviceName),
