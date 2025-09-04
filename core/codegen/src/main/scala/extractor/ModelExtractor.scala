@@ -25,10 +25,10 @@ class ModelExtractor():
       traverseType(tpe)
     referencedSymbols.toSet
 
-  protected def notSupported(msg: String): Nothing =
+  /* protected */ def notSupported(msg: String): Nothing =
     throw Exception(s"Not supported by yaga codegen: ${msg}")
 
-  protected def notSupported(tpe: Type): Nothing =
+  /* protected */ def notSupported(tpe: Type): Nothing =
     notSupported(s"type ${tpe.showBasic}")
 
 

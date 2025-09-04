@@ -9,5 +9,5 @@ case class ExtractedServiceAppApi(
   serviceAppConfigType: Type,
   modelSymbols: Seq[Symbol],
   openApiSpecYaml: String,
-  referencedSchemaableSymbols: Set[ClassSymbol]
+  referencedSchemaableTypes: Map[ClassSymbol, SchemaableType]
 )

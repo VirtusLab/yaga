@@ -27,7 +27,7 @@ object SchemaCompatibility:
     val serverOpenApi = openapiFromYaml(actualSchema)
     val clientOpenApi = openapiFromYaml(expectedSchema)
 
-    val compatibilityIssues = OpenAPIComparator(serverOpenApi, clientOpenApi).compare()
+    val compatibilityIssues = OpenAPIComparator(clientOpenAPI = clientOpenApi, serverOpenAPI =serverOpenApi).compare()
 
     if compatibilityIssues.isEmpty then
       '{

@@ -4,7 +4,9 @@ import tastyquery.Contexts.*
 import tastyquery.Types.*
 import tastyquery.Symbols.*
 
-class ModelExtractor extends yaga.codegen.core.extractor.ModelExtractor:
+import yaga.codegen.core.extractor.ModelExtractor as CoreModelExtractor
+
+class ModelExtractor extends CoreModelExtractor:
   protected val referencedSchemaableSymbols = collection.mutable.Set.empty[ClassSymbol]
 
   override def isBuiltinClass(ref: TypeRef) =
@@ -18,18 +20,23 @@ class ModelExtractor extends yaga.codegen.core.extractor.ModelExtractor:
           case _ => notSupported(s"yaga.k8sservice.ServiceReference type ${t.showBasic} has unsupported type argument(s)") // TODO better message
 
         typeArg match
-          case ref: TypeRef =>
+          case ref: TermRef =>
             val cls = ref.optSymbol match
-              case Some(sym) => sym.asClass
-                referencedSchemaableSymbols += sym.asClass
-              case None => notSupported(s"yaga.k8sservice.ServiceReference type ${t.showBasic} has unsupported type argument: ${ref.showBasic}") // TODO better message
+              case Some(sym) =>
+                sym.moduleClass match
+                  case Some(module) =>
+                    referencedSchemaableSymbols += module
+                  case None =>
+                    notSupported(s"yaga.k8sservice.ServiceReference type ${t.showBasic} has unsupported type argument: ${ref}") // TODO better message
+              case None => notSupported(s"yaga.k8sservice.ServiceReference type ${t.showBasic} has unsupported type argument: ${ref}") // TODO better message
+            
           case _ =>
-            notSupported(s"yaga.k8sservice.ServiceReference type ${t.showBasic} has unsupported type argument: ${typeArg.showBasic}") // TODO better message
+            notSupported(s"yaga.k8sservice.ServiceReference type ${t.showBasic} has unsupported type argument: ${typeArg}") // TODO better message
             
       case _ =>
         super.traverseType(tpe)
 
-  def collectSchemaableTypes(rootTypes: Seq[Type])(using Context) =
+  def collectSchemaableTypeSymbols(rootTypes: Seq[Type])(using Context) =
     referencedSchemaableSymbols.clear()
     typesToVisit.clear()
     rootTypes.foreach(enqueueType)

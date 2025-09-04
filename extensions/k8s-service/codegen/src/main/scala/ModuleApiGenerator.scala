@@ -13,15 +13,7 @@ class ModuleApiGenerator(packagePrefixParts: Seq[String], serviceAppApis: Seq[Ex
   val apiModelSymbols = apiModelSymbolSet.toSeq
   val typeRenderer = TypeRenderer(packagePrefixParts, apiModelSymbolSet)
 
-  println("&&&&&&&&&")
-
-  serviceAppApis.flatMap(_.referencedSchemaableSymbols).foreach: sym =>
-    println(sym)
-
   def generateModelSources()(using Context): Seq[SourceFile] =
-    println("##################")
-    apiModelSymbols.foreach(sym => println(s"Processing API model symbol: ${sym.name}"))
-    println("$$$$$$$$$$$$$$$$$$")
     apiModelSymbols.flatMap:
       case sym: ClassSymbol if sym.isCaseClass =>
         Seq(sourceForCaseClass(sym))
@@ -66,37 +58,41 @@ class ModuleApiGenerator(packagePrefixParts: Seq[String], serviceAppApis: Seq[Ex
     )
 
   def generateSourcesForSchemaableTypes()(using Context): Seq[SourceFile] =
-    serviceAppApis.flatMap(_.referencedSchemaableSymbols).map(sym => generateSourcesForSchemaableType(sym))
+    serviceAppApis.flatMap(_.referencedSchemaableTypes.values).map(tpe => generateSourcesForSchemaableType(tpe))
 
-  def generateSourcesForSchemaableType(sym: ClassSymbol)(using Context): SourceFile =
+  // def generateSourcesForSchemaableType(sym: ClassSymbol)(using Context): SourceFile =
+  def generateSourcesForSchemaableType(schemaableType: SchemaableType)(using Context): SourceFile =
+    val sym = schemaableType.classSymbol
     val packagesSuffixParts = CoreModelExtractor.ownerPackageNamesChain(sym.owner)
     val packageParts = packagePrefixParts ++ packagesSuffixParts
-    val className = scala.meta.Type.Name(sym.name.toString) // TODO avoid name clashes?
+    val className = scala.meta.Type.Name(sym.name.toString.stripSuffix("$")) // TODO avoid name clashes?; Probably stripping $ should be handled somewhere else if we can't assume these types always map ffrom an object to a class/trait
 
-    val fakeOpenApiSpecYaml = // TODO
-      """
-      |openapi: 3.1.0
-      |info:
-      |  title: Yaga service API
-      |  version: ''
-      |paths:
-      |  /echo:
-      |    post:
-      |      operationId: postEcho
-      |      requestBody:
-      |        content:
-      |          text/plain:
-      |            schema:
-      |              type: string
-      |        required: true
-      |      responses:
-      |        '200':
-      |          description: ''
-      |          content:
-      |            text/plain:
-      |              schema:
-      |                type: string
-      """.stripMargin
+    // val fakeOpenApiSpecYaml = // TODO
+    //   """
+    //   |openapi: 3.1.0
+    //   |info:
+    //   |  title: Yaga service API
+    //   |  version: ''
+    //   |paths:
+    //   |  /echo:
+    //   |    post:
+    //   |      operationId: postEcho
+    //   |      requestBody:
+    //   |        content:
+    //   |          text/plain:
+    //   |            schema:
+    //   |              type: string
+    //   |        required: true
+    //   |      responses:
+    //   |        '200':
+    //   |          description: ''
+    //   |          content:
+    //   |            text/plain:
+    //   |              schema:
+    //   |                type: string
+    //   """.stripMargin
+
+    val openApiSpecYaml = schemaableType.openApiSchemaYaml
 
     val trippleQuotes = "\"\"\""
     
@@ -114,7 +110,7 @@ class ModuleApiGenerator(packagePrefixParts: Seq[String], serviceAppApis: Seq[Ex
           |    type Schema = clientApiSpecYaml.type
           |
           |  inline val clientApiSpecYaml = ${trippleQuotes}
-          |${fakeOpenApiSpecYaml}
+          |${openApiSpecYaml}
           |  ${trippleQuotes}
           |""".stripMargin
 

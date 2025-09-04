@@ -7,7 +7,7 @@ import besom.json.*
  */
 
 
-case class ServiceReference[A](
+case class ServiceReference[E /* <: Endpoints */](
   uri: String
 ) /* derives JsonFormat */
 

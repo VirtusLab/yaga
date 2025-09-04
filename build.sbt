@@ -4,7 +4,7 @@
 
 lazy val root = project
   .in(file("."))
-  .aggregate(`core`, `aws-lambda`)
+  .aggregate(`core`, `aws-lambda`, `k8s-service`)
   .settings(
     name := "yaga",
     publish / skip := true

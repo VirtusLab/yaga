@@ -6,29 +6,27 @@ import sttp.tapir.server.netty.NettyFutureServer
 import sttp.tapir.json.circe.*
 import sttp.tapir.generic.auto.*
 import io.circe.generic.auto.*
-// import sttp.tapir.client.sttp.SttpClientInterpreter
-// import sttp.client3.*
-
 import sttp.tapir.client.sttp4.SttpClientInterpreter
 import sttp.client4.*
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
+import besom.json.*
 import yaga.k8sservice.NettyFutureServerApp
 import yaga.k8sservice.ServiceReference
-import besom.json.*
+import yaga.k8sservice.ExtractEndpoints
 
 import example.echo.EchoEndpoints
 
 case class ServerConfig(
   myConfigValue: String,
-  echoService: ServiceReference[EchoEndpoints]
+  echoService: ServiceReference[EchoEndpoints.type]
 ) derives JsonReader
 
 object ProxyService extends NettyFutureServerApp[ServerConfig]:
   override def serverEndpoints(config: ServerConfig): List[ServerEndpoint] =
-    val echoServiceUrl = "http://echo-app-service:8080" // TODO Don't hardcode
+    lazy val echoServiceUrl = config.echoService.uri // lazy not to enforce evaluation of config in a dry run
 
     val backend: SyncBackend = DefaultSyncBackend()
 
@@ -47,7 +45,7 @@ object ProxyService extends NettyFutureServerApp[ServerConfig]:
         .apply(msg)
 
       // val client: Int = SttpClientInterpreter()
-      //   .toClientThrowErrors(EchoEndpoints.echoEndpoint, Some(uri"$echoServiceUrl"), backend)
+      //   .toClientThrowErrors(EchoServiceEndpoints.echoEndpoint, Some(uri"$echoServiceUrl"), backend)
 
       Future {
         val response = request.send(backend)

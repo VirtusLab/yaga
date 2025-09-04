@@ -3,6 +3,7 @@ lazy val `echo-endpoints` = project.in(file("echo-endpoints"))
     scalaVersion := "3.3.6",
     libraryDependencies ++= Seq(
       "com.softwaremill.sttp.tapir" %% "tapir-core"           % "1.11.41",
+      "org.virtuslab" %% "yaga-k8s-service-sdk" % "0.1.0-SNAPSHOT"
     )
   )
 

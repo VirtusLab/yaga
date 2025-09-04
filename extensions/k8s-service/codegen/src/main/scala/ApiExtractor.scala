@@ -25,9 +25,18 @@ class ApiExtractor():
 
     val modelSymbols = extractReferencedSymbols(rootTypes).toSeq
 
-    val openApiSpecYaml = extractOpenApiSpecYaml(serviceAppClassFullName, classLoader)
+    val openApiSpecYaml = extractOpenApiServerSpecYaml(serviceAppClassFullName, classLoader)
 
-    val referencedSchemaableSymbols = ModelExtractor().collectSchemaableTypes(rootTypes)
+    val referencedSchemaableSymbols = ModelExtractor().collectSchemaableTypeSymbols(rootTypes)
+
+    val referencedSchemaableTypes = referencedSchemaableSymbols.map{ sym =>
+      val packageParts = CoreModelExtractor.ownerPackageNamesChain(sym.owner)
+      val className = sym.name.toString//.stripSuffix("$")
+      val classFullName = (packageParts :+ className).mkString(".") // TODO handle this logic in the right place?
+      val schema = extractOpenApiClientSpecYaml(classFullName, classLoader)
+      sym -> SchemaableType(sym, schema)
+    }.toMap
+
 
     ExtractedServiceAppApi(
       serviceAppClassPackageParts = serviceAppClassPackageParts,
@@ -35,20 +44,56 @@ class ApiExtractor():
       serviceAppConfigType = configType,
       modelSymbols = modelSymbols,
       openApiSpecYaml = openApiSpecYaml,
-      referencedSchemaableSymbols = referencedSchemaableSymbols
+      referencedSchemaableTypes = referencedSchemaableTypes
     )
 
   private def extractReferencedSymbols(rootTypes: Seq[Type])(using Context): Set[ClassSymbol] =
     val modelExtractor = ModelExtractor()
     modelExtractor.collect(rootTypes)
 
-  private def extractOpenApiSpecYaml(serviceAppClassFullName: String, classLoader: ClassLoader)(using Context): String =
+  private def extractOpenApiServerSpecYaml(serviceAppClassFullName: String, classLoader: ClassLoader)(using Context): String =
     val methodName = "serverEndpointsOpenapiSpecYaml"
     val clazz = Class.forName(serviceAppClassFullName, true, classLoader)
     val moduleField = clazz.getField("MODULE$")
     val moduleInstance = moduleField.get(null)
     val method = clazz.getMethod(methodName)
     method.invoke(moduleInstance).asInstanceOf[String]
+
+  private def extractOpenApiClientSpecYaml(classFullName: String, classLoader: ClassLoader)(using Context): String =
+    val clazz = Class.forName(classFullName, true, classLoader)
+    val moduleField = clazz.getField("MODULE$")
+    val moduleInstance = moduleField.get(null)
+    val method1 = clazz.getMethod("derived$ExtractEndpoints") // TODO improve error message when the typeclass was not derived
+    val extractEndpointsInstance = method1.invoke(moduleInstance)
+    val method2 = extractEndpointsInstance.getClass.getMethod("endpointsOpenApiSpecYaml")
+    method2.invoke(extractEndpointsInstance).asInstanceOf[String]
+
+    // val fakeOpenApiSpecYaml = // TODO
+    //   """
+    //   |openapi: 3.1.0
+    //   |info:
+    //   |  title: Yaga service API
+    //   |  version: '0.0.1'
+    //   |paths:
+    //   |  /echo:
+    //   |    post:
+    //   |      operationId: postEcho
+    //   |      requestBody:
+    //   |        content:
+    //   |          text/plain:
+    //   |            schema:
+    //   |              type: string
+    //   |        required: true
+    //   |      responses:
+    //   |        '200':
+    //   |          description: ''
+    //   |          content:
+    //   |            text/plain:
+    //   |              schema:
+    //   |                type: string
+    //   """.stripMargin
+
+    // fakeOpenApiSpecYaml
 
   def extractServiceAppApis(codegenSources: Seq[CodegenSource])(using Context): Seq[ExtractedServiceAppApi] =
     val jarUrls = ContextSetup.getSourcesClasspath(codegenSources).map { path =>
