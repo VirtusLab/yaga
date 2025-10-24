@@ -22,6 +22,8 @@ object Lambda:
     config: besom.types.Input[C],
     args: FunctionArgs,
     opts: besom.ResourceOptsVariant.Custom ?=> besom.CustomResourceOptions = besom.CustomResourceOptions()
+  )(
+    using besom.internal.Context
   ): besom.types.Output[Lambda[I, O]] =
     for {
       conf <- config.asOutput(isSecret = false)

@@ -22,7 +22,12 @@ object AwsLambdaSettings {
     name := "yaga-aws-lambda-besom",
     libraryDependencies ++= Seq(
       CommonSettings.besomCoreDependency,
-      CommonSettings.besomProviderDependency("aws", "6.72.0"),
+      // CommonSettings.besomProviderDependency("aws", "6.72.0"),
+      "org.virtuslab" %% "besom-aws" % "6.53.0-mini-core.0.5-LOCAL-SNAPSHOT",
+    //   val artifactName = s"besom-${providerName}"
+    // val artifactVersion = s"${providerVersion}-core.${besomMinorVersion}-SNAPSHOT"
+    // "org.virtuslab" %% artifactName % artifactVersion
+    // ~/.ivy2/local/org.virtuslab/besom-aws_3/6.53.0-mini-core.0.5-LOCAL-SNAPSHOT/
       classGraphDep,
     )
   )

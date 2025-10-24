@@ -5,7 +5,7 @@ import besom.api.docker
 import java.nio.file.Paths
 import java.nio.file.Files
 import java.util.Base64
-import besom.json.json
+import besom.json.*
 
 import yaga.kubernetes.dockerSecretFromEcrToken
 
@@ -21,13 +21,19 @@ import example.proxy.{ProxyService, ProxyServiceArgs, ServerConfig as ProxyServe
   val echoImageFullName = "730335225485.dkr.ecr.eu-north-1.amazonaws.com/yaga-test-echo:0.1.0-SNAPSHOT"
   val proxyImageFullName = "730335225485.dkr.ecr.eu-north-1.amazonaws.com/yaga-test-proxy:0.1.0-SNAPSHOT"
 
-
   ////////////////////////
 
+  val provider = for
+    stackRef <- StackReference("eksdev")
+    kubeconfig <- stackRef.requireOutput("kubeconfig")
+    p <- kubernetes.Provider("my-provider", kubernetes.ProviderArgs(kubeconfig = kubeconfig.toString))
+  yield p
 
   val namespace = kubernetes.core.v1.Namespace(namespaceName, kubernetes.core.v1.NamespaceArgs(
-    metadata = kubernetes.meta.v1.inputs.ObjectMetaArgs(name = namespaceName)
-  ))
+      metadata = kubernetes.meta.v1.inputs.ObjectMetaArgs(name = namespaceName)
+    ),
+    opts = opts(provider = provider)
+  )
 
 
   val creds = aws.ecr.getAuthorizationToken(
@@ -53,14 +59,14 @@ import example.proxy.{ProxyService, ProxyServiceArgs, ServerConfig as ProxyServe
   )
 
 
-  val dockerSecret = dockerSecretFromEcrToken(resourceName = "docker-secret", namespace = namespaceName, secretName = "docker-secret", registry = registryName, authToken = creds.authorizationToken)
+  val dockerSecret = dockerSecretFromEcrToken(resourceName = "docker-secret", namespace = namespaceName, secretName = "docker-secret", registry = registryName, authToken = creds.authorizationToken, provider = provider)
 
   val echoApp = EchoService("echo-app", EchoServiceArgs(
     namespace = namespaceName,
     image = echoImage,
     imageSecrets = dockerSecret,
     runConfig = EchoServerConfig(myConfigValue = "some test value")
-  ))
+  ), opts = opts(providers = provider))
 
   val proxyApp = ProxyService("proxy-app", ProxyServiceArgs(
     namespace = namespaceName,
@@ -74,7 +80,8 @@ import example.proxy.{ProxyService, ProxyServiceArgs, ServerConfig as ProxyServe
           myConfigValue = "some test value",
           echoService = echoServiceRef
         )
-    )
+    ),
+    opts = opts(providers = provider),
   )
 
   Stack(namespace, dockerSecret, echoImage, echoApp, proxyImage, proxyApp).exports(

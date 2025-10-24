@@ -5,7 +5,7 @@ import besom.json.*
 import besom.api.{kubernetes => k8s}
 import java.util.Base64
 
-def dockerSecretFromEcrToken(resourceName: NonEmptyString, namespace: Input[String], secretName: Input[String], registry: Input[String], authToken: Input[String])(using Context): Output[k8s.core.v1.Secret] = {
+def dockerSecretFromEcrToken(resourceName: NonEmptyString, namespace: Input[String], secretName: Input[String], registry: Input[String], authToken: Input[String], provider: Input[ProviderResource])(using Context): Output[k8s.core.v1.Secret] = {
   val dockerAuths = json"""{
     "auths": {
       ${registry.asOutput()}: {
@@ -27,7 +27,7 @@ def dockerSecretFromEcrToken(resourceName: NonEmptyString, namespace: Input[Stri
     stringData = Map(
       ".dockerconfigjson" -> dockerAuths.map(_.toString)
     )
-  ))
+  ), opts = opts(provider = provider))
 
   dockerSecret
 }

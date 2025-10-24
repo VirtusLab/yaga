@@ -137,6 +137,8 @@ class ModuleApiGenerator(packagePrefixParts: Seq[String], lambdaApis: Seq[Extrac
           |    args: _root_.besom.api.aws.lambda.FunctionArgs,
           |    config: _root_.besom.types.Input[Config]${defaultConfigValueSnippet},
           |    opts: _root_.besom.ResourceOptsVariant.Custom ?=> _root_.besom.CustomResourceOptions = _root_.besom.CustomResourceOptions()
+          |  )(
+          |    using ctx: _root_.besom.internal.Context
           |  ): _root_.besom.types.Output[${lambdaClassName}] =
           |    val runtime = "$runtime"
           |    val handlerName = "${lambdaHandler}"

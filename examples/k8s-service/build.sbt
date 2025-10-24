@@ -43,12 +43,23 @@ lazy val infra = project.in(file("infra"))
   .settings(
     scalaVersion := "3.3.6",
     libraryDependencies ++= Seq(
-      "org.virtuslab" %% "besom-aws" % "6.73.0-core.0.5-SNAPSHOT",
-      "org.virtuslab" %% "besom-kubernetes" % "4.22.1-core.0.5-SNAPSHOT",
-      "org.virtuslab" %% "besom-docker" % "4.6.2-core.0.5-SNAPSHOT"
+      "org.virtuslab" %% "besom-aws" % "6.66.3-core.0.5-LOCAL-SNAPSHOT",
+      "org.virtuslab" %% "besom-kubernetes" % "4.22.1-core.0.5-LOCAL-SNAPSHOT",
+      "org.virtuslab" %% "besom-docker" % "4.6.2-core.0.5-LOCAL-SNAPSHOT",
+      "org.virtuslab" %% "besom-json" % "0.5.0-LOCAL-SNAPSHOT",
     )
   )
   .withYagaDependencies(
     `echo-service`.yagaK8sServiceInfra(),
     `proxy-service`.yagaK8sServiceInfra()
+  )
+
+lazy val eksinfra = project.in(file("eksinfra"))
+  .settings(
+    scalaVersion := "3.3.6",
+    libraryDependencies ++= Seq(
+      "org.virtuslab" %% "besom-kubernetes" % "4.22.1-core.0.5-LOCAL-SNAPSHOT",
+      "org.virtuslab" %% "besom-awsx" % "2.21.1-core.0.5-LOCAL-SNAPSHOT",
+      "org.virtuslab" %% "besom-eks" % "3.8.1-core.0.5-LOCAL-SNAPSHOT",
+    )
   )
