@@ -18,7 +18,7 @@ object SchemaCompatibility:
       case Left(error)    => throw new IllegalArgumentException("Failed to parse OpenAPI YAML specification", error)
     }
 
-  private def compatibilityImpl[S1 <: String : Type, S2 <: String : Type](using Quotes): Expr[SchemaCompatibility[S1, S2]] =
+  private def compatibilityImpl[S1 <: String: Type, S2 <: String: Type](using Quotes): Expr[SchemaCompatibility[S1, S2]] =
     import quotes.reflect.*
 
     val actualSchema = Type.valueOfConstant[S1].getOrElse(report.errorAndAbort(s"Type ${Type.show[S1]} is not a string literal type"))
@@ -27,14 +27,15 @@ object SchemaCompatibility:
     val serverOpenApi = openapiFromYaml(actualSchema)
     val clientOpenApi = openapiFromYaml(expectedSchema)
 
-    val compatibilityIssues = OpenAPIComparator(clientOpenAPI = clientOpenApi, serverOpenAPI =serverOpenApi).compare()
+    val compatibilityIssues = OpenAPIComparator(clientOpenAPI = clientOpenApi, serverOpenAPI = serverOpenApi).compare()
 
     if compatibilityIssues.isEmpty then
       '{
         new SchemaCompatibility[S1, S2]
       }
     else
-      val displayableCompatibilityIssues = compatibilityIssues.map(issue => s"  * ${issue}").mkString("\n")
+      val displayableCompatibilityIssues =
+        compatibilityIssues.map(issue => s"  * ${fansi.Color.Red(issue.toString)}").mkString("\n")
       val displayableServerSchema = actualSchema.linesIterator.map(line => s"  ${line}").mkString("\n")
       val displayableClientSchema = expectedSchema.linesIterator.map(line => s"  ${line}").mkString("\n")
       val errorMessage = "The OpenAPI schemas are not compatible.\n" +

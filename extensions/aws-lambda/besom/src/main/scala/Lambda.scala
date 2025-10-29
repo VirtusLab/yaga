@@ -8,21 +8,21 @@ import yaga.json.JsonWriter
 import yaga.extensions.aws.lambda.LambdaHandle
 
 class Lambda[I, O](
-  val underlyingFunction: Function,
-  val lambdaHandle: LambdaHandle[I, O]
+    val underlyingFunction: Function,
+    val lambdaHandle: LambdaHandle[I, O]
 ):
   export underlyingFunction.*
 
 object Lambda:
-  def apply[C : JsonWriter, I, O](
-    name: NonEmptyString,
-    codeArchive: Archive,
-    handlerName: String,
-    runtime: String,
-    config: besom.types.Input[C],
-    args: FunctionArgs,
-    opts: besom.ResourceOptsVariant.Custom ?=> besom.CustomResourceOptions = besom.CustomResourceOptions()
-  ): besom.types.Output[Lambda[I, O]] =
+  def apply[C: JsonWriter, I, O](
+      name: NonEmptyString,
+      codeArchive: Archive,
+      handlerName: String,
+      runtime: String,
+      config: besom.types.Input[C],
+      args: FunctionArgs,
+      opts: besom.ResourceOptsVariant.Custom ?=> besom.CustomResourceOptions = besom.CustomResourceOptions()
+  )(using ctx: besom.Context): besom.types.Output[Lambda[I, O]] =
     for {
       conf <- config.asOutput(isSecret = false)
       modifiedArgs = args.withArgs(
@@ -31,7 +31,9 @@ object Lambda:
         handler = handlerName,
         runtime = runtime,
         environment = FunctionEnvironmentArgs(
-          variables = EnvWriter.write(conf).getOrElse(throw new Exception("Cannot serialize config to environment variables")) // TODO handle error better
+          variables = EnvWriter
+            .write(conf)
+            .getOrElse(throw new Exception("Cannot serialize config to environment variables")) // TODO handle error better
         )
         // TODO clear properties conflicting with the ones from above (for env vars extending rather than overriding?)
         // TODO get and set default (minimal) java version from the jar (via the metadata) ???

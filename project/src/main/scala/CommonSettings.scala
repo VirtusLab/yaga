@@ -7,24 +7,24 @@ object CommonSettings {
   val scala3NextVersion = "3.6.4"
 
   val besomMinorVersion = "0.5"
-  val besomVersion = "0.5.0-SNAPSHOT"
+  val besomVersion = "0.5.0"
   val besomCoreDependency = "org.virtuslab" %% "besom-core" % besomVersion
   def besomProviderDependency(providerName: String, providerVersion: String): ModuleID = {
     val artifactName = s"besom-${providerName}"
-    val artifactVersion = s"${providerVersion}-core.${besomMinorVersion}-SNAPSHOT"
+    val artifactVersion = s"${providerVersion}-core.${besomMinorVersion}"
     "org.virtuslab" %% artifactName % artifactVersion
   }
 
   val sdkModuleSettings = Seq(
-    scalaVersion := scala3LTSVersion,
+    scalaVersion := scala3LTSVersion
   )
 
   val besomModuleSettings = Seq(
-    scalaVersion := scala3LTSVersion,
+    scalaVersion := scala3LTSVersion
   )
 
   val codegenModuleSettings = Seq(
-    scalaVersion := scala3NextVersion,
+    scalaVersion := scala3NextVersion
   )
 
   val compilerPluginModuleSettings = Seq(

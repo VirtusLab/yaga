@@ -1,11 +1,7 @@
 package example.proxy
 
 import sttp.tapir._
-import sttp.tapir.server.netty._
 import sttp.tapir.server.netty.NettyFutureServer
-import sttp.tapir.json.circe.*
-import sttp.tapir.generic.auto.*
-import io.circe.generic.auto.*
 import sttp.tapir.client.sttp4.SttpClientInterpreter
 import sttp.client4.*
 
@@ -15,13 +11,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import besom.json.*
 import yaga.k8sservice.NettyFutureServerApp
 import yaga.k8sservice.ServiceReference
-import yaga.k8sservice.ExtractEndpoints
 
 import example.echo.EchoEndpoints
 
 case class ServerConfig(
-  myConfigValue: String,
-  echoService: ServiceReference[EchoEndpoints.type]
+    myConfigValue: String,
+    echoService: ServiceReference[EchoEndpoints.type]
 ) derives JsonReader
 
 object ProxyService extends NettyFutureServerApp[ServerConfig]:

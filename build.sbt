@@ -10,7 +10,6 @@ lazy val root = project
     publish / skip := true
   )
 
-
 ////////////////////////////////////////////////////////////
 // Commons
 ////////////////////////////////////////////////////////////
@@ -18,11 +17,19 @@ lazy val root = project
 ThisBuild / organization := "org.virtuslab"
 ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / developers := List(
-  Developer(id = "lbialy", name = "Łukasz Biały", email = "lbialy@virtuslab.com", url = url("https://github.com/lbialy")),
-  Developer(id = "prolativ", name = "Michał Pałka", email = "mpalka@virtuslab.com", url = url("https://github.com/prolativ"))
+  Developer(
+    id = "lbialy",
+    name = "Łukasz Biały",
+    email = "lbialy@virtuslab.com",
+    url = url("https://github.com/lbialy")
+  ),
+  Developer(
+    id = "prolativ",
+    name = "Michał Pałka",
+    email = "mpalka@virtuslab.com",
+    url = url("https://github.com/prolativ")
+  )
 )
-
-ThisBuild / resolvers ++= Resolver.sonatypeOssRepos("snapshots")
 
 ////////////////////////////////////////////////////////////
 // Core
@@ -49,7 +56,6 @@ lazy val `core` = project
     publish / skip := true
   )
 
-
 ////////////////////////////////////////////////////////////
 // AWS Lambda
 ////////////////////////////////////////////////////////////
@@ -64,7 +70,9 @@ lazy val `aws-lambda-sdk` = crossProject(JVMPlatform, JSPlatform)
 lazy val `aws-lambda-besom` = project
   .in(file("extensions/aws-lambda/besom"))
   .settings(AwsLambdaSettings.besomSettings)
-  .dependsOn(`aws-lambda-sdk`.jvm) // Needs dependency only on the model part od the SDK - split modules?
+  .dependsOn(
+    `aws-lambda-sdk`.jvm
+  ) // Needs dependency only on the model part od the SDK - split modules?
 
 lazy val `aws-lambda-codegen` = project
   .in(file("extensions/aws-lambda/codegen"))
@@ -82,11 +90,17 @@ lazy val `aws-lambda-sbt` = project
 
 lazy val `aws-lambda` = project
   .in(file("extensions/aws-lambda"))
-  .aggregate(`aws-lambda-sdk`.jvm, `aws-lambda-sdk`.js, `aws-lambda-besom`, `aws-lambda-codegen`, `aws-lambda-compiler-plugin`, `aws-lambda-sbt`)
+  .aggregate(
+    `aws-lambda-sdk`.jvm,
+    `aws-lambda-sdk`.js,
+    `aws-lambda-besom`,
+    `aws-lambda-codegen`,
+    `aws-lambda-compiler-plugin`,
+    `aws-lambda-sbt`
+  )
   .settings(
     publish / skip := true
   )
-
 
 ////////////////////////////////////////////////////////////
 // K8s Service
@@ -114,5 +128,10 @@ lazy val `k8s-service-sbt` = project
 
 lazy val `k8s-service` = project
   .in(file("extensions/k8s-service"))
-  .aggregate(`k8s-service-sdk`, `k8s-service-besom`, `k8s-service-codegen`, `k8s-service-sbt`)
+  .aggregate(
+    `k8s-service-sdk`,
+    `k8s-service-besom`,
+    `k8s-service-codegen`,
+    `k8s-service-sbt`
+  )
   .settings(publish / skip := true)
