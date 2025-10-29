@@ -9,8 +9,8 @@ import besom.json.json
 
 import yaga.kubernetes.dockerSecretFromEcrToken
 
-import example.echo.{EchoService, EchoServiceArgs, ServerConfig as EchoServerConfig}
-import example.proxy.{ProxyService, ProxyServiceArgs, ServerConfig as ProxyServerConfig}
+import example.recipes.{RecipesService, RecipesServiceArgs, ServerConfig as RecipesServerConfig}
+import example.products.{ProductService, ProductServiceArgs, ServerConfig as ProductServerConfig}
 
 @main def main = Pulumi.run:
 
@@ -18,68 +18,76 @@ import example.proxy.{ProxyService, ProxyServiceArgs, ServerConfig as ProxyServe
 
   val namespaceName = "my-application"
   val registryName = "730335225485.dkr.ecr.eu-north-1.amazonaws.com"
-  val echoImageFullName = "730335225485.dkr.ecr.eu-north-1.amazonaws.com/yaga-test-echo:0.1.0-SNAPSHOT"
-  val proxyImageFullName = "730335225485.dkr.ecr.eu-north-1.amazonaws.com/yaga-test-proxy:0.1.0-SNAPSHOT"
-
+  val productImageFullName = "730335225485.dkr.ecr.eu-north-1.amazonaws.com/yaga-test-product:0.1.0-SNAPSHOT"
+  val recipesImageFullName = "730335225485.dkr.ecr.eu-north-1.amazonaws.com/yaga-test-recipes:0.1.0-SNAPSHOT"
 
   ////////////////////////
 
-
-  val namespace = kubernetes.core.v1.Namespace(namespaceName, kubernetes.core.v1.NamespaceArgs(
-    metadata = kubernetes.meta.v1.inputs.ObjectMetaArgs(name = namespaceName)
-  ))
-
+  val namespace = kubernetes.core.v1.Namespace(
+    namespaceName,
+    kubernetes.core.v1.NamespaceArgs(
+      metadata = kubernetes.meta.v1.inputs.ObjectMetaArgs(name = namespaceName)
+    )
+  )
 
   val creds = aws.ecr.getAuthorizationToken(
     aws.ecr.GetAuthorizationTokenArgs()
   )
 
-  val echoImage = EchoService.imageResource(
-    resourceName = "echo-image",
-    fullImageName = echoImageFullName,
+  val productImage = ProductService.imageResource(
+    resourceName = "product-image",
+    fullImageName = productImageFullName,
     registry = docker.inputs.RegistryArgs(
       username = creds.userName,
       password = creds.password
     )
   )
 
-  val proxyImage = ProxyService.imageResource(
-    resourceName = "proxy-image",
-    fullImageName = proxyImageFullName,
+  val recipesImage = RecipesService.imageResource(
+    resourceName = "recipes-image",
+    fullImageName = recipesImageFullName,
     registry = docker.inputs.RegistryArgs(
       username = creds.userName,
       password = creds.password
     )
   )
 
-
-  val dockerSecret = dockerSecretFromEcrToken(resourceName = "docker-secret", namespace = namespaceName, secretName = "docker-secret", registry = registryName, authToken = creds.authorizationToken)
-
-  val echoApp = EchoService("echo-app", EchoServiceArgs(
+  val dockerSecret = dockerSecretFromEcrToken(
+    resourceName = "docker-secret",
     namespace = namespaceName,
-    image = echoImage,
-    imageSecrets = dockerSecret,
-    runConfig = EchoServerConfig(myConfigValue = "some test value")
-  ))
+    secretName = "docker-secret",
+    registry = registryName,
+    authToken = creds.authorizationToken
+  )
 
-  val proxyApp = ProxyService("proxy-app", ProxyServiceArgs(
-    namespace = namespaceName,
-    image = proxyImage,
-    imageSecrets = dockerSecret,
-    runConfig = 
-      for
-        echoServiceRef <- echoApp.asServiceRef[example.echo.EchoEndpoints]
-      yield
-        ProxyServerConfig(
+  val productApp = ProductService(
+    "product-app",
+    ProductServiceArgs(
+      namespace = namespaceName,
+      image = productImage,
+      imageSecrets = dockerSecret,
+      runConfig = ProductServerConfig(myConfigValue = "some test value")
+    )
+  )
+
+  val recipesApp = RecipesService(
+    "recipes-app",
+    RecipesServiceArgs(
+      namespace = namespaceName,
+      image = recipesImage,
+      imageSecrets = dockerSecret,
+      runConfig =
+        for productServiceRef <- productApp.asServiceRef[example.products.ProductsEndpoints]
+        yield RecipesServerConfig(
           myConfigValue = "some test value",
-          echoService = echoServiceRef
+          productService = productServiceRef
         )
     )
   )
 
-  Stack(namespace, dockerSecret, echoImage, echoApp, proxyImage, proxyApp).exports(
-    echoServiceName = echoApp.flatMap(_.serviceName),
-    echoDeploymentName = echoApp.flatMap(_.deploymentName),
-    proxyServiceName = proxyApp.flatMap(_.serviceName),
-    proxyDeploymentName = proxyApp.flatMap(_.deploymentName),
+  Stack(namespace, dockerSecret, productImage, productApp, recipesImage, recipesApp).exports(
+    productServiceName = productApp.flatMap(_.serviceName),
+    productDeploymentName = productApp.flatMap(_.deploymentName),
+    recipesServiceName = recipesApp.flatMap(_.serviceName),
+    recipesDeploymentName = recipesApp.flatMap(_.deploymentName)
   )

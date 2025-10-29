@@ -1,17 +1,18 @@
-lazy val `echo-endpoints` = project
-  .in(file("echo-endpoints"))
+lazy val `products-endpoints` = project
+  .in(file("products-endpoints"))
   .settings(
     scalaVersion := "3.3.6",
     libraryDependencies ++= Seq(
       "com.softwaremill.sttp.tapir" %% "tapir-core" % "1.11.41",
+      "com.softwaremill.sttp.tapir" %% "tapir-json-circe" % "1.11.41",
       "org.virtuslab" %% "yaga-k8s-service-sdk" % "0.1.0-SNAPSHOT"
     )
   )
 
-lazy val `echo-service` = project
-  .in(file("echo-service"))
+lazy val `product-service` = project
+  .in(file("product-service"))
   .yagaK8sService()
-  .dependsOn(`echo-endpoints`)
+  .dependsOn(`products-endpoints`)
   .settings(
     scalaVersion := "3.3.6",
     libraryDependencies ++= Seq(
@@ -24,10 +25,10 @@ lazy val `echo-service` = project
     dockerBaseImage := "eclipse-temurin:21"
   )
 
-lazy val `proxy-service` = project
-  .in(file("proxy-service"))
+lazy val `recipes-service` = project
+  .in(file("recipes-service"))
   .yagaK8sService()
-  .dependsOn(`echo-endpoints`)
+  .dependsOn(`products-endpoints`)
   .settings(
     scalaVersion := "3.3.6",
     libraryDependencies ++= Seq(
@@ -53,6 +54,6 @@ lazy val infra = project
     )
   )
   .withYagaDependencies(
-    `echo-service`.yagaK8sServiceInfra(),
-    `proxy-service`.yagaK8sServiceInfra()
+    `product-service`.yagaK8sServiceInfra(),
+    `recipes-service`.yagaK8sServiceInfra()
   )
