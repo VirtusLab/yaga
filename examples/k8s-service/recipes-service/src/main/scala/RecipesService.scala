@@ -123,7 +123,7 @@ object RecipesService extends NettyFutureServerApp[ServerConfig]:
             // Call product service to get nutrition info for all products
             val request = SttpClientInterpreter()
               .toRequestThrowErrors(
-                ProductsEndpoints.getNutritionInfosEndpoint,
+                ProductsEndpoints.getNutritionInfosEndpoint, // TODO refer to endpoints bundled with URL in a typesafe way
                 Some(uri"$productServiceUrl")
               )
               .apply(productIds)
