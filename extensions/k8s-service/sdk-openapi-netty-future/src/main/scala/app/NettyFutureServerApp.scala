@@ -9,10 +9,9 @@ import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.netty.NettyFutureServer
 import sttp.tapir.server.netty.NettyFutureServerBinding
 
-trait NettyFutureServerApp[C : JsonReader](using ec: ExecutionContext)/* (using FutureServerEndpointExtractor[A]) */ extends ServiceApp[C]:
+trait NettyFutureServerApp[C: JsonReader](using ec: ExecutionContext) extends OpenAPIServiceApp[C]:
+
   type ServerEndpoint = sttp.tapir.server.ServerEndpoint[Any, Future]
-
-
 
   final override def main(args: Array[String]): Unit =
     val config = EnvReader.read[C](sys.env) match
@@ -21,15 +20,13 @@ trait NettyFutureServerApp[C : JsonReader](using ec: ExecutionContext)/* (using 
         System.err.println(s"Failed to read config from environment: ${sys.env}")
         throw e
 
-    // val endpoints = prepareEndpoints(config)
-    // val extractedEndpoints: List[ServerEndpoint[Any, Future]] = summon[FutureServerEndpointExtractor[A]].allEndpoints(endpoints)
     val endpoints = serverEndpoints(config)
     val server = prepareServer(config)
     val serverWithEndpoints = server.addEndpoints(endpoints)
 
     val binding = serverWithEndpoints.start()
     handleBinding(binding)
-  
+
   def prepareServer(config: C): NettyFutureServer =
     given ec: ExecutionContext = ExecutionContext.global
 
@@ -39,7 +36,7 @@ trait NettyFutureServerApp[C : JsonReader](using ec: ExecutionContext)/* (using 
 
   def handleBinding(binding: Future[NettyFutureServerBinding]): Unit =
     given ec: ExecutionContext = ExecutionContext.global
-    
+
     binding.foreach { _ =>
       println("Server running ...")
     }

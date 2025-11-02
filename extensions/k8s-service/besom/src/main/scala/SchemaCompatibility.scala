@@ -5,6 +5,16 @@ import scala.quoted.*
 import sttp.apispec.openapi.OpenAPI
 import sttp.apispec.openapi.circe.openAPIDecoder
 import sttp.apispec.openapi.validation.OpenAPIComparator
+import sttp.apispec.openapi.validation.OpenAPICompatibilityIssue
+
+extension (compatIssue: OpenAPICompatibilityIssue)
+  def renderWithPrefix(prefix: String): String =
+    val description = compatIssue.description
+    val lines = description.split("\n")
+    val prefixSize = prefix.length
+    val headerLine = lines.headOption.map(line => s"${prefix}${line}")
+    val bodyLines = lines.drop(1).map(line => s"${" " * prefixSize}${line}")
+    (headerLine.toList ++ bodyLines).mkString("\n")
 
 class SchemaCompatibility[A, B]
 
@@ -35,7 +45,7 @@ object SchemaCompatibility:
       }
     else
       val displayableCompatibilityIssues =
-        compatibilityIssues.map(issue => s"  * ${fansi.Color.Red(issue.toString)}").mkString("\n")
+        compatibilityIssues.map(issue => issue.renderWithPrefix("  * ")).mkString("\n")
       val displayableServerSchema = actualSchema.linesIterator.map(line => s"  ${line}").mkString("\n")
       val displayableClientSchema = expectedSchema.linesIterator.map(line => s"  ${line}").mkString("\n")
       val errorMessage = "The OpenAPI schemas are not compatible.\n" +

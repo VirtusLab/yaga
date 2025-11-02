@@ -13,27 +13,46 @@ import com.typesafe.sbt.packager.universal.UniversalPlugin.autoImport.{stagingDi
 object YagaK8sServicePlugin extends AutoPlugin with K8sServicePluginKeys {
   val yagaK8sServiceVersion = YagaPlugin.yagaVersion
   val yagaK8sServiceBesomDep = "org.virtuslab" %% "yaga-k8s-service-besom" % yagaK8sServiceVersion
-  val yagaK8sServiceSdkDep = "org.virtuslab" %% "yaga-k8s-service-sdk" % yagaK8sServiceVersion
-  
+  val yagaK8sServiceSdkOpenApiDep = "org.virtuslab" %% "yaga-k8s-service-sdk-openapi" % yagaK8sServiceVersion
+  val yagaK8sServiceSdkOpenApiNettyFutureDep = "org.virtuslab" %% "yaga-k8s-service-sdk-netty-future" % yagaK8sServiceVersion
+  val yagaK8sServiceSdkOpenApiNettySyncDep = "org.virtuslab" %% "yaga-k8s-service-sdk-netty-sync" % yagaK8sServiceVersion
+
   override def requires = JavaAppPackaging && DockerPlugin && YagaPlugin
   override def trigger = allRequirements
 
   object autoImport {
     val k8sService = taskKey[Unit]("Build a k8s service")
+    sealed trait ServerType
+    object ServerType {
+      case object NettyFuture extends ServerType
+      case object NettySync extends ServerType
+    }
 
     implicit class YagaK8sServiceProjectOps(project: Project) {
-      def yagaK8sService() = {
+      def yagaOpenApiK8sService(serverType: ServerType) = {
         project
           .enablePlugins(JavaAppPackaging)
           .enablePlugins(DockerPlugin)
           .settings(
             libraryDependencies ++= Seq(
-              yagaK8sServiceSdkDep
-            ),
+              yagaK8sServiceSdkOpenApiDep,
+              serverType match {
+                case ServerType.NettyFuture => yagaK8sServiceSdkOpenApiNettyFutureDep
+                case ServerType.NettySync   => yagaK8sServiceSdkOpenApiNettySyncDep
+              }
+            )
           )
       }
 
-      def yagaK8sServiceModel(outputSubdirName: Option[String] = None, packagePrefix: String = ""): YagaK8sServiceDependency = {
+      def yagaOpenApiEndpoints() = {
+        project.settings(
+          libraryDependencies ++= Seq(
+            yagaK8sServiceSdkOpenApiDep
+          )
+        )
+      }
+
+      def yagaOpenApiK8sServiceModel(outputSubdirName: Option[String] = None, packagePrefix: String = ""): YagaK8sServiceDependency = {
         YagaK8sServiceDependency(
           project = project,
           outputSubdirName = outputSubdirName,
@@ -59,8 +78,8 @@ object YagaK8sServicePlugin extends AutoPlugin with K8sServicePluginKeys {
     // Remove the snp-multi-stage-id label from the docker commands to make generation of the Dockerfile idempotent
     Docker / dockerCommands := {
       dockerCommands.value.filter {
-        case Cmd("LABEL", label) => !label.startsWith("snp-multi-stage-id=") 
-        case _ => true
+        case Cmd("LABEL", label) => !label.startsWith("snp-multi-stage-id=")
+        case _                   => true
       }
     }
   )

@@ -9,17 +9,20 @@ import yaga.codegen.core.extractor.{CodegenSource, ContextSetup, ModelExtractor 
 import yaga.codegen.k8sservice.ModelExtractor
 
 class ApiExtractor():
-  val serviceAppBaseClassFullName = "yaga.k8sservice.ServiceApp"
+  val serviceAppBaseClassFullName = "yaga.k8sservice.OpenAPIServiceApp"
 
   def extractServiceAppApi(serviceAppClassFullName: String, classLoader: ClassLoader)(using Context): ExtractedServiceAppApi =
-    val serviceAppClass = ctx.findTopLevelModuleClass(serviceAppClassFullName.stripSuffix("$")) // TODO handle case when class is not found, e.g. for nested classes; does the entry point have to be a (module) object?
+    val serviceAppClass = ctx.findTopLevelModuleClass(
+      serviceAppClassFullName.stripSuffix("$")
+    ) // TODO handle case when class is not found, e.g. for nested classes; does the entry point have to be a (module) object?
     val serviceAppClassPackageParts = CoreModelExtractor.ownerPackageNamesChain(serviceAppClass.owner)
     val serviceAppClassName = serviceAppClass.name.toString.stripSuffix("$") // TODO should this work for both modules and classes/traits?
 
-    val rootTypes = serviceAppClass.parents.collectFirst:
-      case at: AppliedType if at.tycon.showBasic == serviceAppBaseClassFullName /* TODO don't rely on showBasic? */  =>
-        at.args.collect { case tpe: Type => tpe }
-    .getOrElse(throw Exception(s"Class $serviceAppClassName does not directly extend $serviceAppBaseClassFullName"))
+    val rootTypes = serviceAppClass.parents
+      .collectFirst:
+        case at: AppliedType if at.tycon.showBasic == serviceAppBaseClassFullName /* TODO don't rely on showBasic? */ =>
+          at.args.collect { case tpe: Type => tpe }
+      .getOrElse(throw Exception(s"Class $serviceAppClassName does not directly extend $serviceAppBaseClassFullName"))
 
     val List(configType) = rootTypes
 
@@ -29,14 +32,13 @@ class ApiExtractor():
 
     val referencedSchemaableSymbols = ModelExtractor().collectSchemaableTypeSymbols(rootTypes)
 
-    val referencedSchemaableTypes = referencedSchemaableSymbols.map{ sym =>
+    val referencedSchemaableTypes = referencedSchemaableSymbols.map { sym =>
       val packageParts = CoreModelExtractor.ownerPackageNamesChain(sym.owner)
-      val className = sym.name.toString//.stripSuffix("$")
+      val className = sym.name.toString // .stripSuffix("$")
       val classFullName = (packageParts :+ className).mkString(".") // TODO handle this logic in the right place?
       val schema = extractOpenApiClientSpecYaml(classFullName, classLoader)
       sym -> SchemaableType(sym, schema)
     }.toMap
-
 
     ExtractedServiceAppApi(
       serviceAppClassPackageParts = serviceAppClassPackageParts,
@@ -96,15 +98,24 @@ class ApiExtractor():
     // fakeOpenApiSpecYaml
 
   def extractServiceAppApis(codegenSources: Seq[CodegenSource])(using Context): Seq[ExtractedServiceAppApi] =
-    val jarUrls = ContextSetup.getSourcesClasspath(codegenSources).map { path =>
-      path.toUri.toURL
-    }.toArray
+    val jarUrls = ContextSetup
+      .getSourcesClasspath(codegenSources)
+      .map { path =>
+        path.toUri.toURL
+      }
+      .toArray
 
     val jarClassLoader = new java.net.URLClassLoader(jarUrls)
-    val serviceAppSubclasses = new ClassGraph().overrideClassLoaders(jarClassLoader).enableClassInfo.scan()
+    val serviceAppSubclasses = new ClassGraph()
+      .overrideClassLoaders(jarClassLoader)
+      .enableClassInfo
+      .scan()
       .getClassesImplementing(serviceAppBaseClassFullName)
-      .asScala.toList
-      .filter(_.getName.endsWith("$")) // ТODO Find more reliable way to filter the extected classes; this eries to exclude intermediate descendents of the ServiceApp class
+      .asScala
+      .toList
+      .filter(
+        _.getName.endsWith("$")
+      ) // ТODO Find more reliable way to filter the extected classes; this eries to exclude intermediate descendents of the ServiceApp class
 
     serviceAppSubclasses.map: clazz =>
       extractServiceAppApi(serviceAppClassFullName = clazz.getName, classLoader = jarClassLoader)

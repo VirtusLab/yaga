@@ -7,19 +7,19 @@ import java.nio.file.Files
 import java.util.Base64
 import besom.json.json
 
-import yaga.kubernetes.dockerSecretFromEcrToken
-
 import example.recipes.{RecipesService, RecipesServiceArgs, ServerConfig as RecipesServerConfig}
 import example.products.{ProductService, ProductServiceArgs, ServerConfig as ProductServerConfig}
+
+import yaga.k8sservice.ImageCoordinates
 
 @main def main = Pulumi.run:
 
   // User's config (required) -- TODO extract to stack config where applicable
-
+  val registryName = config.getString("registryName").getOrFail {
+    Exception("You must provide a registryName in the config!")
+  }
   val namespaceName = "my-application"
-  val registryName = "730335225485.dkr.ecr.eu-north-1.amazonaws.com"
-  val productImageFullName = "730335225485.dkr.ecr.eu-north-1.amazonaws.com/yaga-test-product:0.1.0-SNAPSHOT"
-  val recipesImageFullName = "730335225485.dkr.ecr.eu-north-1.amazonaws.com/yaga-test-recipes:0.1.0-SNAPSHOT"
+  // val registryName = "730335225485.dkr.ecr.eu-north-1.amazonaws.com"
 
   ////////////////////////
 
@@ -34,9 +34,29 @@ import example.products.{ProductService, ProductServiceArgs, ServerConfig as Pro
     aws.ecr.GetAuthorizationTokenArgs()
   )
 
+  val productRepository = aws.ecr.Repository(
+    "yaga-test-product",
+    aws.ecr.RepositoryArgs(
+      name = "yaga-test-product",
+      forceDelete = true
+    )
+  )
+
+  val recipesRepository = aws.ecr.Repository(
+    "yaga-test-recipes",
+    aws.ecr.RepositoryArgs(
+      name = "yaga-test-recipes",
+      forceDelete = true
+    )
+  )
+
   val productImage = ProductService.imageResource(
     resourceName = "product-image",
-    fullImageName = productImageFullName,
+    imageCoordinates = ImageCoordinates(
+      registry = registryName,
+      name = productRepository.name,
+      tag = "0.1.0-SNAPSHOT"
+    ),
     registry = docker.inputs.RegistryArgs(
       username = creds.userName,
       password = creds.password
@@ -45,7 +65,11 @@ import example.products.{ProductService, ProductServiceArgs, ServerConfig as Pro
 
   val recipesImage = RecipesService.imageResource(
     resourceName = "recipes-image",
-    fullImageName = recipesImageFullName,
+    imageCoordinates = ImageCoordinates(
+      registry = registryName,
+      name = recipesRepository.name,
+      tag = "0.1.0-SNAPSHOT"
+    ),
     registry = docker.inputs.RegistryArgs(
       username = creds.userName,
       password = creds.password

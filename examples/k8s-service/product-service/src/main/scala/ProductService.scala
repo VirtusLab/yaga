@@ -3,7 +3,7 @@ package example.products
 import sttp.tapir.*
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import yaga.k8sservice.NettyFutureServerApp
+import yaga.k8sservice.NettySyncServerApp
 import besom.json.*
 import example.products.ProductsEndpoints.*
 
@@ -11,7 +11,10 @@ case class ServerConfig(
     myConfigValue: String
 ) derives JsonReader
 
-object ProductService extends NettyFutureServerApp[ServerConfig]:
+object ProductService extends NettySyncServerApp[ServerConfig]:
+
+  def serviceName: String = "product-service"
+  def serviceVersion: String = "0.1.0-SNAPSHOT"
 
   // In-memory product data - matching Java service
   private val products: List[Product] = List(
@@ -52,41 +55,34 @@ object ProductService extends NettyFutureServerApp[ServerConfig]:
   override def serverEndpoints(config: ServerConfig): List[ServerEndpoint] =
 
     // GET /products/{productId}
-    val getProductServerEndpoint = ProductsEndpoints.getProductEndpoint.serverLogic { productId =>
-      Future.successful(
-        getProductById(productId) match
-          case Some(product) => Right(product)
-          case None          => Left(())
-      )
+    val getProductServerEndpoint = ProductsEndpoints.getProductEndpoint.handle { productId =>
+      getProductById(productId) match
+        case Some(product) => Right(product)
+        case None          => Left(())
     }
 
-    // GET /products/{productId}
-    val getNewProductServerEndpoint = NewProductsEndpoints.getProductEndpoint.serverLogic { productId =>
-      Future.successful(
-        getNewProductById(productId) match
-          case Some(product) => Right(product)
-          case None          => Left(())
-      )
+    // GET /products/{productId} - this endpoint uses different schema
+    val getNewProductServerEndpoint = NewProductsEndpoints.getProductEndpoint.handle { productId =>
+      getNewProductById(productId) match
+        case Some(product) => Right(product)
+        case None          => Left(())
     }
 
     // GET /products/{productId}/nutrition?unit={unit}
-    val getNutritionInfoServerEndpoint = ProductsEndpoints.getNutritionInfoEndpoint.serverLogic {
-      case (productId, unit) =>
-        Future.successful(
-          getNutritionInfo(productId, unit) match
-            case Some(info) => Right(info)
-            case None       => Left(())
-        )
+    val getNutritionInfoServerEndpoint = ProductsEndpoints.getNutritionInfoEndpoint.handle { case (productId, unit) =>
+      getNutritionInfo(productId, unit) match
+        case Some(info) => Right(info)
+        case None       => Left(())
     }
 
     // GET /products/nutrition?productIds={ids}
-    val getNutritionInfosServerEndpoint = ProductsEndpoints.getNutritionInfosEndpoint.serverLogicSuccess { productIds =>
-      Future.successful(getNutritionInfos(productIds))
+    val getNutritionInfosServerEndpoint = ProductsEndpoints.getNutritionInfosEndpoint.handleSuccess { productIds =>
+      getNutritionInfos(productIds)
     }
 
     List(
+      getNutritionInfosServerEndpoint,
       getProductServerEndpoint, // comment to trigger schema errors
       // getNewProductServerEndpoint, // uncomment to trigger schema errors
-      getNutritionInfoServerEndpoint,
-      getNutritionInfosServerEndpoint
+      getNutritionInfoServerEndpoint
     )

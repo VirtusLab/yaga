@@ -106,15 +106,25 @@ lazy val `aws-lambda` = project
 // K8s Service
 ////////////////////////////////////////////////////////////
 
-lazy val `k8s-service-sdk` = project
-  .in(file("extensions/k8s-service/sdk"))
-  .settings(K8sServiceSettings.sdkSettings)
+lazy val `k8s-service-sdk-open-api` = project
+  .in(file("extensions/k8s-service/sdk-openapi"))
+  .settings(K8sServiceSettings.sdkOpenApiSettings)
   .dependsOn(`core-model`.jvm)
+
+lazy val `k8s-service-sdk-open-api-netty-future` = project
+  .in(file("extensions/k8s-service/sdk-openapi-netty-future"))
+  .settings(K8sServiceSettings.sdkNettyFutureSettings)
+  .dependsOn(`k8s-service-sdk-open-api`)
+
+lazy val `k8s-service-sdk-open-api-netty-sync` = project
+  .in(file("extensions/k8s-service/sdk-openapi-netty-sync"))
+  .settings(K8sServiceSettings.sdkNettySyncSettings)
+  .dependsOn(`k8s-service-sdk-open-api`)
 
 lazy val `k8s-service-besom` = project
   .in(file("extensions/k8s-service/besom"))
   .settings(K8sServiceSettings.besomSettings)
-  .dependsOn(`k8s-service-sdk`)
+  .dependsOn(`k8s-service-sdk-open-api`)
 
 lazy val `k8s-service-codegen` = project
   .in(file("extensions/k8s-service/codegen"))
@@ -129,7 +139,9 @@ lazy val `k8s-service-sbt` = project
 lazy val `k8s-service` = project
   .in(file("extensions/k8s-service"))
   .aggregate(
-    `k8s-service-sdk`,
+    `k8s-service-sdk-open-api`,
+    `k8s-service-sdk-open-api-netty-future`,
+    `k8s-service-sdk-open-api-netty-sync`,
     `k8s-service-besom`,
     `k8s-service-codegen`,
     `k8s-service-sbt`

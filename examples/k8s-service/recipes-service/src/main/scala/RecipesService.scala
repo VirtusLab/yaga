@@ -3,7 +3,6 @@ package example.recipes
 import sttp.tapir._
 import sttp.tapir.generic.auto._
 import sttp.tapir.json.circe._
-import sttp.tapir.server.netty.NettyFutureServer
 import sttp.tapir.client.sttp4.SttpClientInterpreter
 import sttp.client4.*
 import io.circe.generic.semiauto._
@@ -13,7 +12,7 @@ import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import besom.json.*
-import yaga.k8sservice.NettyFutureServerApp
+import yaga.k8sservice.NettySyncServerApp
 import yaga.k8sservice.ServiceReference
 
 import example.products.ProductsEndpoints
@@ -51,15 +50,29 @@ case class NutritionInfo(
 )
 
 object NutritionInfo:
+  val zero: NutritionInfo = NutritionInfo(0.0, 0.0, 0.0, 0.0)
+
   given Encoder[NutritionInfo] = deriveEncoder[NutritionInfo]
   given Decoder[NutritionInfo] = deriveDecoder[NutritionInfo]
+
+  extension (a: NutritionInfo)
+    def +(b: NutritionInfo): NutritionInfo =
+      NutritionInfo(
+        calories = a.calories + b.calories,
+        protein = a.protein + b.protein,
+        fat = a.fat + b.fat,
+        carbohydrates = a.carbohydrates + b.carbohydrates
+      )
 
 case class ServerConfig(
     myConfigValue: String,
     productService: ServiceReference[ProductsEndpoints.type]
 ) derives JsonReader
 
-object RecipesService extends NettyFutureServerApp[ServerConfig]:
+object RecipesService extends NettySyncServerApp[ServerConfig]:
+
+  def serviceName: String = "recipes-service"
+  def serviceVersion: String = "0.1.0-SNAPSHOT"
 
   // Hardcoded recipe data matching Java service
   private val recipes: List[Recipe] = List(
@@ -81,6 +94,7 @@ object RecipesService extends NettyFutureServerApp[ServerConfig]:
     lazy val productServiceUrl = config.productService.uri
 
     val backend: SyncBackend = DefaultSyncBackend()
+    val clientInterpreter = SttpClientInterpreter()
 
     // GET /recipes - return all recipes
     val getAllRecipesEndpoint: PublicEndpoint[Unit, Unit, List[Recipe], Any] =
@@ -88,8 +102,8 @@ object RecipesService extends NettyFutureServerApp[ServerConfig]:
         .in("recipes")
         .out(jsonBody[List[Recipe]])
 
-    val getAllRecipesServerEndpoint = getAllRecipesEndpoint.serverLogicSuccess { _ =>
-      Future.successful(recipes)
+    val getAllRecipesServerEndpoint = getAllRecipesEndpoint.handleSuccess { _ =>
+      recipes
     }
 
     // GET /recipes/{id} - return single recipe (404 if not found)
@@ -98,12 +112,10 @@ object RecipesService extends NettyFutureServerApp[ServerConfig]:
         .in("recipes" / path[Long]("id"))
         .out(jsonBody[Recipe])
 
-    val getRecipeByIdServerEndpoint = getRecipeByIdEndpoint.serverLogic { id =>
-      Future.successful(
-        recipes.find(_.id == id) match
-          case Some(recipe) => Right(recipe)
-          case None         => Left(())
-      )
+    val getRecipeByIdServerEndpoint = getRecipeByIdEndpoint.handle { id =>
+      recipes.find(_.id == id) match
+        case Some(recipe) => Right(recipe)
+        case None         => Left(())
     }
 
     // GET /recipes/{id}/nutrition - calculate nutrition by calling product service
@@ -112,47 +124,44 @@ object RecipesService extends NettyFutureServerApp[ServerConfig]:
         .in("recipes" / path[Long]("id") / "nutrition")
         .out(jsonBody[NutritionInfo])
 
-    val getRecipeNutritionServerEndpoint = getRecipeNutritionEndpoint.serverLogic { id =>
-      Future {
-        recipes.find(_.id == id) match
-          case None         => Left(())
-          case Some(recipe) =>
-            // Get product IDs from ingredients
-            val productIds = recipe.ingredients.map(_.productId)
+    val getRecipeNutritionServerEndpoint = getRecipeNutritionEndpoint.handle { id =>
+      recipes.find(_.id == id) match
+        case None         => Left(())
+        case Some(recipe) =>
+          // Get product IDs from ingredients
+          val productIds = recipe.ingredients.map(_.productId)
 
-            // Call product service to get nutrition info for all products
-            val request = SttpClientInterpreter()
-              .toRequestThrowErrors(
-                ProductsEndpoints.getNutritionInfosEndpoint, // TODO refer to endpoints bundled with URL in a typesafe way
-                Some(uri"$productServiceUrl")
-              )
-              .apply(productIds)
+          // Call product service to get nutrition info for all products
+          // TODO refer to endpoints bundled with URL in a typesafe way
+          val request = clientInterpreter
+            .toRequestThrowErrors(
+              ProductsEndpoints.getNutritionInfosEndpoint,
+              Some(uri"$productServiceUrl")
+            )
+            .apply(productIds)
 
-            val response = request.send(backend)
-            val productNutritionList = response.body
+          val response = request.send(backend)
+          val productNutritionList = response.body
 
-            // Create a map for easy lookup
-            val nutritionMap = productNutritionList.map(n => n.productId -> n).toMap
+          // Create a map for easy lookup
+          val nutritionMap = productNutritionList.map(n => n.productId -> n).toMap
 
-            // Calculate total nutrition per serving
-            var totalCalories = 0.0
-            var totalProtein = 0.0
-            var totalFat = 0.0
-            var totalCarbs = 0.0
-
-            recipe.ingredients.foreach { ingredient =>
-              nutritionMap.get(ingredient.productId).foreach { productNutrition =>
-                // Calculate per serving: (nutrition per gram) * (quantity per serving)
+          // Calculate total nutrition per serving
+          val totalNutrition = recipe.ingredients
+            .flatMap { ingredient =>
+              nutritionMap.get(ingredient.productId).map { productNutrition =>
                 val quantityPerServing = ingredient.quantity / recipe.servings
-                totalCalories += productNutrition.calories * quantityPerServing
-                totalProtein += productNutrition.protein * quantityPerServing
-                totalFat += productNutrition.fat * quantityPerServing
-                totalCarbs += productNutrition.carbohydrates * quantityPerServing
+                NutritionInfo(
+                  calories = productNutrition.calories * quantityPerServing,
+                  protein = productNutrition.protein * quantityPerServing,
+                  fat = productNutrition.fat * quantityPerServing,
+                  carbohydrates = productNutrition.carbohydrates * quantityPerServing
+                )
               }
             }
+            .foldLeft(NutritionInfo.zero)(_ + _)
 
-            Right(NutritionInfo(totalCalories, totalProtein, totalFat, totalCarbs))
-      }
+          Right(totalNutrition)
     }
 
     List(
