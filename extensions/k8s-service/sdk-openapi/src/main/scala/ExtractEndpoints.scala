@@ -21,9 +21,8 @@ object ExtractEndpoints:
 
   inline def derived[A]: ExtractEndpoints[A] = ${ derivedImpl[A] }
 
-
   // TODO handle exported members
-  private def derivedImpl[A : Type](using Quotes): Expr[ExtractEndpoints[A]] = {
+  private def derivedImpl[A: Type](using Quotes): Expr[ExtractEndpoints[A]] = {
     import quotes.reflect.*
     val endpointTpe = TypeRepr.of[Endpoint[?, ?, ?, ?, ?]]
     val tpe = TypeRepr.of[A]

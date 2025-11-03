@@ -111,6 +111,11 @@ lazy val `k8s-service-sdk-open-api` = project
   .settings(K8sServiceSettings.sdkOpenApiSettings)
   .dependsOn(`core-model`.jvm)
 
+lazy val `k8s-service-sdk-open-api-client` = project
+  .in(file("extensions/k8s-service/sdk-openapi-client"))
+  .settings(K8sServiceSettings.sdkOpenApiClientSettings)
+  .dependsOn(`k8s-service-sdk-open-api`)
+
 lazy val `k8s-service-sdk-open-api-netty-future` = project
   .in(file("extensions/k8s-service/sdk-openapi-netty-future"))
   .settings(K8sServiceSettings.sdkNettyFutureSettings)
@@ -140,6 +145,7 @@ lazy val `k8s-service` = project
   .in(file("extensions/k8s-service"))
   .aggregate(
     `k8s-service-sdk-open-api`,
+    `k8s-service-sdk-open-api-client`,
     `k8s-service-sdk-open-api-netty-future`,
     `k8s-service-sdk-open-api-netty-sync`,
     `k8s-service-besom`,

@@ -1,6 +1,6 @@
 lazy val `products-endpoints` = project
   .in(file("products-endpoints"))
-  .yagaOpenApiEndpoints()
+  .yagaOpenApiEndpoints
   .settings(
     scalaVersion := "3.3.6",
     libraryDependencies ++= Seq(
@@ -24,6 +24,7 @@ lazy val `product-service` = project
 lazy val `recipes-service` = project
   .in(file("recipes-service"))
   .yagaOpenApiK8sService(ServerType.NettySync)
+  .yagaOpenApiClient
   .dependsOn(`products-endpoints`)
   .settings(
     scalaVersion := "3.3.6",

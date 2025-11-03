@@ -16,6 +16,7 @@ object YagaK8sServicePlugin extends AutoPlugin with K8sServicePluginKeys {
   val yagaK8sServiceSdkOpenApiDep = "org.virtuslab" %% "yaga-k8s-service-sdk-openapi" % yagaK8sServiceVersion
   val yagaK8sServiceSdkOpenApiNettyFutureDep = "org.virtuslab" %% "yaga-k8s-service-sdk-netty-future" % yagaK8sServiceVersion
   val yagaK8sServiceSdkOpenApiNettySyncDep = "org.virtuslab" %% "yaga-k8s-service-sdk-netty-sync" % yagaK8sServiceVersion
+  val yagaK8sServiceSdkOpenApiClientDep = "org.virtuslab" %% "yaga-k8s-service-sdk-openapi-client" % yagaK8sServiceVersion
 
   override def requires = JavaAppPackaging && DockerPlugin && YagaPlugin
   override def trigger = allRequirements
@@ -44,7 +45,15 @@ object YagaK8sServicePlugin extends AutoPlugin with K8sServicePluginKeys {
           )
       }
 
-      def yagaOpenApiEndpoints() = {
+      def yagaOpenApiClient = {
+        project.settings(
+          libraryDependencies ++= Seq(
+            yagaK8sServiceSdkOpenApiClientDep
+          )
+        )
+      }
+
+      def yagaOpenApiEndpoints = {
         project.settings(
           libraryDependencies ++= Seq(
             yagaK8sServiceSdkOpenApiDep

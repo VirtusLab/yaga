@@ -10,13 +10,43 @@ import yaga.codegen.core.generator.TypeRenderer as CoreTypeRenderer
 
 class TypeRenderer(packagePrefixParts: Seq[String], apiSymbols: Set[Symbol]) extends CoreTypeRenderer(packagePrefixParts, apiSymbols):
   import CoreTypeRenderer.notSupported
-  
+
+  private def isServiceReferenceType(tycon: Type)(using ctx: Context): Boolean =
+    // Check if type is ServiceReference or a subtype by examining the type hierarchy
+    tycon match
+      case ref: TypeRef =>
+        ref.optSymbol match
+          case Some(sym: ClassSymbol) =>
+            // Check if this class or any of its parents is ServiceReference
+            def hasServiceReferenceParent(cls: ClassSymbol, tpe: TypeRef): Boolean =
+              val packageParts = CoreTypeRenderer.prefixNameParts(tpe.prefix)
+              val fullName = (packageParts :+ cls.name.toString).mkString(".")
+              fullName == "yaga.k8sservice.ServiceReference" ||
+              cls.parents.exists {
+                case parent: TypeRef =>
+                  parent.optSymbol match
+                    case Some(parentSym: ClassSymbol) => hasServiceReferenceParent(parentSym, parent)
+                    case _                            => false
+                case parent: AppliedType =>
+                  // Handle generic parents like ServiceReference[E]
+                  parent.tycon match
+                    case tyconRef: TypeRef =>
+                      tyconRef.optSymbol match
+                        case Some(parentSym: ClassSymbol) => hasServiceReferenceParent(parentSym, tyconRef)
+                        case _                            => false
+                    case _ => false
+                case _ => false
+              }
+            hasServiceReferenceParent(sym, ref)
+          case _ => false
+      case _ => false
+
   override def typeToCode(tpe: Type)(using Context): meta.Type =
     tpe match
-      case t: AppliedType if t.tycon.showBasic == "yaga.k8sservice.ServiceReference" =>
+      case t: AppliedType if isServiceReferenceType(t.tycon) =>
         val argTypes = t.args.map:
           case arg: Type =>
-            //typeToCode(arg)
+            // typeToCode(arg)
             serrviceReferenceArgTypeAsCode(arg)
           case _: WildcardTypeArg =>
             notSupported("wildcard type parameter")
@@ -37,14 +67,11 @@ class TypeRenderer(packagePrefixParts: Seq[String], apiSymbols: Set[Symbol]) ext
         val sym = t.optSymbol.getOrElse(throw Exception(s"TermRef ${t} has no symbol"))
         val basicPrefixParts = CoreTypeRenderer.prefixNameParts(t.prefix)
         val shiftedPrefixParts =
-          if apiSymbols.contains(sym) then
-            packagePrefixParts ++ basicPrefixParts
-          else
-            basicPrefixParts
+          if apiSymbols.contains(sym) then packagePrefixParts ++ basicPrefixParts
+          else basicPrefixParts
         meta.Type.Select(
           absolutePackageRef(shiftedPrefixParts),
           meta.Type.Name(t.name.toString.stripSuffix("$"))
         )
       case t =>
         notSupported(t)
-    

@@ -22,7 +22,6 @@ import yaga.k8sservice.ImageCoordinates
   // val registryName = "730335225485.dkr.ecr.eu-north-1.amazonaws.com"
 
   ////////////////////////
-
   val namespace = kubernetes.core.v1.Namespace(
     namespaceName,
     kubernetes.core.v1.NamespaceArgs(

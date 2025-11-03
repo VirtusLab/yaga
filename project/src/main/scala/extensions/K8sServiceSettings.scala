@@ -13,6 +13,16 @@ object K8sServiceSettings {
     )
   )
 
+  val sdkOpenApiClientSettings = CommonSettings.sdkModuleSettings ++ Seq(
+    name := "yaga-k8s-service-sdk-openapi-client",
+    libraryDependencies ++= Seq(
+      "com.softwaremill.sttp.tapir" %% "tapir-sttp-client4" % "1.11.41",
+      "com.softwaremill.sttp.client4" %% "core" % "4.0.9",
+      // Test dependencies
+      "org.scalameta" %% "munit" % "1.2.1" % Test
+    )
+  )
+
   val sdkNettyFutureSettings = CommonSettings.sdkModuleSettings ++ Seq(
     name := "yaga-k8s-service-sdk-netty-future",
     libraryDependencies ++= Seq(

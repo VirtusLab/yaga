@@ -13,7 +13,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 import besom.json.*
 import yaga.k8sservice.NettySyncServerApp
-import yaga.k8sservice.ServiceReference
+import yaga.k8sservice.OpenApiServiceReference
 
 import example.products.ProductsEndpoints
 
@@ -66,7 +66,7 @@ object NutritionInfo:
 
 case class ServerConfig(
     myConfigValue: String,
-    productService: ServiceReference[ProductsEndpoints.type]
+    productService: OpenApiServiceReference[ProductsEndpoints.type]
 ) derives JsonReader
 
 object RecipesService extends NettySyncServerApp[ServerConfig]:
@@ -91,10 +91,10 @@ object RecipesService extends NettySyncServerApp[ServerConfig]:
   )
 
   override def serverEndpoints(config: ServerConfig): List[ServerEndpoint] =
-    lazy val productServiceUrl = config.productService.uri
+    lazy val backend: SyncBackend = DefaultSyncBackend()
+    given SttpClientInterpreter = SttpClientInterpreter()
 
-    val backend: SyncBackend = DefaultSyncBackend()
-    val clientInterpreter = SttpClientInterpreter()
+    lazy val productService = config.productService.toRequestThrowErrors
 
     // GET /recipes - return all recipes
     val getAllRecipesEndpoint: PublicEndpoint[Unit, Unit, List[Recipe], Any] =
@@ -132,16 +132,8 @@ object RecipesService extends NettySyncServerApp[ServerConfig]:
           val productIds = recipe.ingredients.map(_.productId)
 
           // Call product service to get nutrition info for all products
-          // TODO refer to endpoints bundled with URL in a typesafe way
-          val request = clientInterpreter
-            .toRequestThrowErrors(
-              ProductsEndpoints.getNutritionInfosEndpoint,
-              Some(uri"$productServiceUrl")
-            )
-            .apply(productIds)
-
-          val response = request.send(backend)
-          val productNutritionList = response.body
+          val request = productService.getNutritionInfosEndpoint(productIds)
+          val productNutritionList = request.send(backend).body
 
           // Create a map for easy lookup
           val nutritionMap = productNutritionList.map(n => n.productId -> n).toMap
