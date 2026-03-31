@@ -8,9 +8,6 @@ import sttp.client4.*
 import io.circe.generic.semiauto._
 import io.circe.{Decoder, Encoder}
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
-
 import besom.json.*
 import yaga.k8sservice.NettySyncServerApp
 import yaga.k8sservice.OpenApiServiceReference
@@ -68,7 +65,6 @@ case class ServerConfig(
     myConfigValue: String,
     productService: OpenApiServiceReference[ProductsEndpoints.type]
 ) derives JsonReader
-
 object RecipesService extends NettySyncServerApp[ServerConfig]:
 
   def serviceName: String = "recipes-service"

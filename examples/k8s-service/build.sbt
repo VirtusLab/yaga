@@ -4,7 +4,6 @@ lazy val `products-endpoints` = project
   .settings(
     scalaVersion := "3.3.6",
     libraryDependencies ++= Seq(
-      "com.softwaremill.sttp.tapir" %% "tapir-core" % "1.11.41",
       "com.softwaremill.sttp.tapir" %% "tapir-json-circe" % "1.11.41"
     )
   )
@@ -29,8 +28,6 @@ lazy val `recipes-service` = project
   .settings(
     scalaVersion := "3.3.6",
     libraryDependencies ++= Seq(
-      "com.softwaremill.sttp.tapir" %% "tapir-sttp-client4" % "1.11.41",
-      "com.softwaremill.sttp.client4" %% "core" % "4.0.9",
       "ch.qos.logback" % "logback-classic" % "1.4.11"
     ),
     dockerBaseImage := "eclipse-temurin:21"

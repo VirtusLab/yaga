@@ -1,8 +1,6 @@
 package example.products
 
 import sttp.tapir.*
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 import yaga.k8sservice.NettySyncServerApp
 import besom.json.*
 import example.products.ProductsEndpoints.*
