@@ -58,7 +58,15 @@ object K8sServiceSettings {
     name := "sbt-yaga-k8s-service",
     libraryDependencies ++= Seq(
     ),
-    addSbtPlugin("com.github.sbt" % "sbt-native-packager" % "1.11.1")
+    resolvers += "Sonatype Central Snapshots" at "https://central.sonatype.com/repository/maven-snapshots/",
+    addSbtPlugin("com.github.sbt" % "sbt-native-packager" % "1.11.1"),
+    // sbt-scalajs-crossproject 1.3.2's POM declares a bogus dep on org.scala-js:sbt-scalajs:0.6.23
+    // which collides with the scala-wasm fork's sbt-scalajs. The dep is unused at runtime; exclude it.
+    addSbtPlugin(
+      ("org.portable-scala" % "sbt-scalajs-crossproject" % "1.3.2")
+        .exclude("org.scala-js", "sbt-scalajs")
+    ),
+    addSbtPlugin("io.github.scala-wasm" % "sbt-scalajs" % "1.20.2-wasm.1-SNAPSHOT")
   )
 
   val classGraphDep = "io.github.classgraph" % "classgraph" % "4.8.179" // TODO reuse between extensions

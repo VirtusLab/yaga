@@ -4,7 +4,7 @@
 
 lazy val root = project
   .in(file("."))
-  .aggregate(`core`, `aws-lambda`, `k8s-service`)
+  .aggregate(`core`, `aws-lambda`, `k8s-service`, `wasm-service`)
   .settings(
     name := "yaga",
     publish / skip := true
@@ -151,5 +151,39 @@ lazy val `k8s-service` = project
     `k8s-service-besom`,
     `k8s-service-codegen`,
     `k8s-service-sbt`
+  )
+  .settings(publish / skip := true)
+
+////////////////////////////////////////////////////////////
+// WASM Service
+////////////////////////////////////////////////////////////
+
+lazy val `wasm-service-sdk` = project
+  .in(file("extensions/wasm-service/sdk"))
+  .settings(WasmServiceSettings.sdkSettings)
+  .dependsOn(`core-model`.jvm)
+
+lazy val `wasm-service-sdk-client` = project
+  .in(file("extensions/wasm-service/sdk-client"))
+  .settings(WasmServiceSettings.sdkClientSettings)
+  .dependsOn(`wasm-service-sdk`)
+
+lazy val `wasm-service-besom` = project
+  .in(file("extensions/wasm-service/besom"))
+  .settings(WasmServiceSettings.besomSettings)
+  .dependsOn(`wasm-service-sdk`)
+
+lazy val `wasm-service-codegen` = project
+  .in(file("extensions/wasm-service/codegen"))
+  .settings(WasmServiceSettings.codegenSettings)
+  .dependsOn(`core-codegen`)
+
+lazy val `wasm-service` = project
+  .in(file("extensions/wasm-service"))
+  .aggregate(
+    `wasm-service-sdk`,
+    `wasm-service-sdk-client`,
+    `wasm-service-besom`,
+    `wasm-service-codegen`
   )
   .settings(publish / skip := true)

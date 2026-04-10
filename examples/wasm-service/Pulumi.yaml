@@ -1,0 +1,7 @@
+name: wasm-service-example
+runtime:
+  name: scala
+  options:
+    logtostderr: true
+    v: 5
+description: End-to-end WASM service example (books + library) deployed to local k3s
