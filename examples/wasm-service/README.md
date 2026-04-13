@@ -138,25 +138,39 @@ resolves. Revert.
 
 ## Cluster run (Gate 2: pulumi up into Colima k3s)
 
+The `deploy-k3s-wasm.sh` script handles everything: VM setup, shim build,
+registry, and Pulumi deployment.
+
 ```bash
-# 0. One-time setup - creates colima VM, builds patched runwasi shim, configures k3s.
-#    This builds runwasi with wasmtime 43 which supports the gc/function-references/exceptions
-#    features required by Scala-WASM. Takes ~5 minutes on first run.
+# Deploy with RuntimeClass mode (requires patched runwasi shim)
+# First run takes ~10 minutes (builds shim from source)
 ./deploy-k3s-wasm.sh
 
-# 1. Codegen + infra compile.
-sbt infra/compile
-# Generated sources land under:
-#   infra/target/scala-3.3.6/src_managed/main/yaga-wasm-service-codegen/{books-service,library-service}/
+# Or deploy with embedded wasmtime (no custom shim needed)
+./deploy-k3s-wasm.sh --embedded
+```
 
-# 2. Bring up the stack.
-pulumi login --local
-pulumi stack init dev
-BESOM_SBT_MODULE=infra pulumi up
+**Runtime modes:**
 
-# 3. Hit library-service through the cluster.
-kubectl -n wasm-demo port-forward svc/library-app-service 8081:8080 &
-curl http://127.0.0.1:8081/library/summary
+| Mode | Flag | Image | Cluster requirements |
+|------|------|-------|---------------------|
+| RuntimeClass | (default) | `FROM scratch` + WASM binary | Patched runwasi shim |
+| Embedded | `--embedded` | Debian + wasmtime v43 | None (standard k8s) |
+
+Once deployed, test the services:
+
+```bash
+# Get the k3s VM IP and service ports
+K3S_IP=$(colima list | awk '/k3s-wasm/ {print $NF}')
+BOOKS_PORT=$(kubectl -n wasm-demo get svc books-app-service -o jsonpath='{.spec.ports[0].nodePort}')
+LIBRARY_PORT=$(kubectl -n wasm-demo get svc library-app-service -o jsonpath='{.spec.ports[0].nodePort}')
+
+# Test books-service
+curl http://$K3S_IP:$BOOKS_PORT/books
+# => [{"title":"The Hobbit","author":"J.R.R. Tolkien"},{"title":"Dune","author":"Frank Herbert"}]
+
+# Test library-service (calls books-service internally)
+curl http://$K3S_IP:$LIBRARY_PORT/library/summary
 # => {"count":2,"titles":["The Hobbit","Dune"]}
 ```
 
@@ -193,8 +207,8 @@ detected by normal Scala symbol resolution (the reference in
 `BooksService.scala` breaks first). Revert.
 
 ```bash
-# 4. Tear down.
-pulumi destroy
+# Tear down (destroys Pulumi resources, removes VMs)
+./teardown-k3s-wasm.sh
 ```
 
 ## Known caveats
@@ -239,8 +253,9 @@ pulumi destroy
   
   This is tracked in [containerd/runwasi#1004](https://github.com/containerd/runwasi/issues/1004).
   
-  **Yaga vendors a patched runwasi** at `vendor/runwasi/` with:
-  - Wasmtime upgraded to 43.0.1 (from 36.0.6)
+  **Yaga vendors a patched runwasi** at `vendor/runwasi/` (fork at
+  [github.com/lbialy/runwasi](https://github.com/lbialy/runwasi)) with:
+  - Wasmtime upgraded to v43 (from v36)
   - `gc`, `function-references`, and `exceptions` features enabled
   
   The `deploy-k3s-wasm.sh` script handles building and installing this shim.
@@ -249,6 +264,5 @@ pulumi destroy
   2. Install: copy `target/release/containerd-shim-wasmtime-v1` to `/usr/local/bin/`
   3. Configure containerd with the `wasmtime` RuntimeClass
   
-  Alternatively, use `WasmRuntime.EmbeddedWasmtime` (the yaga default) which
-  runs `wasmtime serve -Wgc,function-references,exceptions` inside the
-  container — no custom shim required, but adds container overhead.
+  Alternatively, use `--embedded` mode which runs `wasmtime serve` inside a
+  Debian container — no custom shim required, works on any k8s cluster.
