@@ -8,6 +8,8 @@ case class ModuleApiCodegenMainArgs(
   packagePrefix: String,
   generateInfra: Boolean,
   dockerContextAbsolutePath: Option[Path],
+  /** None for EmbeddedWasmtime (default), Some(className) for RuntimeClass */
+  wasmRuntimeClassName: Option[String],
   outputDir: String,
 )
 
@@ -17,6 +19,7 @@ object ModuleApiCodegenMainArgs:
     packagePrefix: Option[String],
     generateInfra: Option[Boolean],
     dockerContextAbsolutePath: Option[Path],
+    wasmRuntimeClassName: Option[String],
     outputDir: Option[String],
   ):
     // TODO don't allow overriding non-repeated parameters
@@ -53,6 +56,10 @@ object ModuleApiCodegenMainArgs:
           this.copy(
             dockerContextAbsolutePath = Some(path)
           ).parseArgs(rest)
+        case "--wasm-runtime-class" :: className :: rest =>
+          this.copy(
+            wasmRuntimeClassName = Some(className)
+          ).parseArgs(rest)
         case "--output-dir" :: outputDir :: rest =>
           this.copy(
             outputDir = Some(outputDir)
@@ -64,6 +71,7 @@ object ModuleApiCodegenMainArgs:
             packagePrefix = packagePrefix.getOrElse(""),
             generateInfra = generateInfra.getOrElse(false),
             dockerContextAbsolutePath = dockerContextAbsolutePath,
+            wasmRuntimeClassName = wasmRuntimeClassName,
             outputDir = outputDir.getOrElse(""),
           )
         case _ =>
@@ -76,6 +84,7 @@ object ModuleApiCodegenMainArgs:
       packagePrefix = None,
       generateInfra = None,
       dockerContextAbsolutePath = None,
+      wasmRuntimeClassName = None,
       outputDir = None,
     )
     emptyParser.parseArgs(args.toList)

@@ -153,13 +153,15 @@ object YagaK8sServicePlugin extends AutoPlugin with K8sServicePluginKeys {
 
       def yagaWasmServiceInfra(
         outputSubdirName: Option[String] = None,
-        packagePrefix: String = ""
+        packagePrefix: String = "",
+        wasmRuntime: WasmRuntime = WasmRuntime.EmbeddedWasmtime
       ): YagaWasmServiceDependency =
         YagaWasmServiceDependency(
           crossProject = cp,
           outputSubdirName = outputSubdirName,
           packagePrefix = packagePrefix,
-          withInfra = true
+          withInfra = true,
+          wasmRuntime = wasmRuntime
         )
     }
   }

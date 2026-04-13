@@ -23,6 +23,9 @@ import yaga.wasmservice.{ImageCoordinates, ImagePlatform}
 // generator. Track as a Phase 4 follow-up: allow `Option[Secret]` on the
 // generated args so local/unauthenticated registries can pass `None`.
 @main def main = Pulumi.run {
+  // Registry host - set via REGISTRY_HOST env var (from deploy-k3s-wasm.sh)
+  // Both docker (build) and k3s-wasm (pull) can reach this via socket_vmnet networking
+  val registryHost = sys.env.getOrElse("REGISTRY_HOST", "localhost:5000")
   val namespaceName = "wasm-demo"
 
   val namespace = kubernetes.core.v1.Namespace(
@@ -44,7 +47,7 @@ import yaga.wasmservice.{ImageCoordinates, ImagePlatform}
       ),
       `type` = "kubernetes.io/dockerconfigjson",
       stringData = Map(
-        ".dockerconfigjson" -> """{"auths":{"localhost:5000":{}}}"""
+        ".dockerconfigjson" -> s"""{"auths":{"$registryHost":{}}}"""
       )
     ),
     opts(dependsOn = namespace)
@@ -52,7 +55,7 @@ import yaga.wasmservice.{ImageCoordinates, ImagePlatform}
 
   val booksImage = BooksService.imageResource(
     resourceName = "books-image",
-    imageCoordinates = ImageCoordinates("localhost:5000/books-service:dev"),
+    imageCoordinates = ImageCoordinates(s"$registryHost/books-service:dev"),
     registry = docker.inputs.RegistryArgs(),
     // Apple Silicon / colima runs arm64 natively. LinuxAmd64 would force rosetta
     // emulation in-VM, which crashes wasmtime on startup with OOMKilled/exit 137
@@ -62,7 +65,7 @@ import yaga.wasmservice.{ImageCoordinates, ImagePlatform}
 
   val libraryImage = LibraryService.imageResource(
     resourceName = "library-image",
-    imageCoordinates = ImageCoordinates("localhost:5000/library-service:dev"),
+    imageCoordinates = ImageCoordinates(s"$registryHost/library-service:dev"),
     registry = docker.inputs.RegistryArgs(),
     // Apple Silicon / colima runs arm64 natively. LinuxAmd64 would force rosetta
     // emulation in-VM, which crashes wasmtime on startup with OOMKilled/exit 137

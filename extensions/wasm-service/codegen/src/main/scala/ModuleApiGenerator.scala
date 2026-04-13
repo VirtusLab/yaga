@@ -8,7 +8,8 @@ import yaga.codegen.core.generator.scalameta.interpolator.*
 import yaga.codegen.core.extractor.{ModelExtractor as CoreModelExtractor}
 import scala.meta.XtensionSyntax
 
-class ModuleApiGenerator(packagePrefixParts: Seq[String], serviceAppApis: Seq[ExtractedServiceAppApi]):
+/** @param wasmRuntimeClassName None for EmbeddedWasmtime (default), Some(className) for RuntimeClass */
+class ModuleApiGenerator(packagePrefixParts: Seq[String], serviceAppApis: Seq[ExtractedServiceAppApi], wasmRuntimeClassName: Option[String]):
   val apiModelSymbolSet = serviceAppApis.foldLeft(Set.empty[Symbol])(_ | _.modelSymbols.toSet)
   val apiModelSymbols = apiModelSymbolSet.toSeq
   val typeRenderer = TypeRenderer(packagePrefixParts, apiModelSymbolSet)
@@ -117,6 +118,30 @@ class ModuleApiGenerator(packagePrefixParts: Seq[String], serviceAppApis: Seq[Ex
         case _            => ""
 
     val trippleQuotes = "\"\"\""
+
+    // Generate runtime-specific snippets for the Kubernetes PodSpec
+    // wasmRuntimeClassName: None = EmbeddedWasmtime, Some(name) = RuntimeClass
+    val (runtimeClassNameSnippet, containerCommandSnippet) = wasmRuntimeClassName match
+      case None =>
+        // Embedded wasmtime: no RuntimeClass, but explicit command to run wasmtime serve
+        val command =
+          """|                // -Scli enables wasi:cli imports (environment variables used by YAGA_WASM_SERVICE_CONFIG);
+             |                // -Sinherit-env is REQUIRED on top of -Scli — -Scli alone enables the wasi:cli/environment
+             |                // proposal but returns an empty env to the guest. Without -Sinherit-env, YAGA_WASM_SERVICE_CONFIG
+             |                // set via k8s `env:` never reaches the guest, config parse blows up, and wasmtime reports
+             |                // "guest never invoked response-outparam::set" on every request.
+             |                // --addr 0.0.0.0:8080 is required so the pod's ServicePort (hardcoded to 8080 above) can reach it —
+             |                // wasmtime serve otherwise defaults to 127.0.0.1 and rejects non-loopback connections.
+             |                command = List("wasmtime", "serve", "-Scli", "-Sinherit-env", "-Wgc,function-references,exceptions", "--addr", "0.0.0.0:8080", "/app/main.wasm"),""".stripMargin
+        ("", command)
+
+      case Some(className) =>
+        // RuntimeClass: cluster's WASM runtime handles execution, no command needed
+        val runtimeClass = s"""              runtimeClassName = "$className","""
+        val command =
+          """|                // Command is handled by the cluster's RuntimeClass WASM runtime.
+             |                // Environment variables are passed through via wasi:cli/environment.""".stripMargin
+        (runtimeClass, command)
 
     val sourceCode =
       m"""|/*
@@ -230,17 +255,11 @@ class ModuleApiGenerator(packagePrefixParts: Seq[String], serviceAppApis: Seq[Ex
           |              labels = Map("yaga-app" -> appLabel)
           |            ),
           |            spec = kubernetes.core.v1.inputs.PodSpecArgs(
+          |${runtimeClassNameSnippet}
           |              containers = List(kubernetes.core.v1.inputs.ContainerArgs(
           |                name = "yaga-app", // TODO
           |                image = args.image.imageReference,
-          |                // -Scli enables wasi:cli imports (environment variables used by YAGA_WASM_SERVICE_CONFIG);
-          |                // -Sinherit-env is REQUIRED on top of -Scli — -Scli alone enables the wasi:cli/environment
-          |                // proposal but returns an empty env to the guest. Without -Sinherit-env, YAGA_WASM_SERVICE_CONFIG
-          |                // set via k8s `env:` never reaches the guest, config parse blows up, and wasmtime reports
-          |                // "guest never invoked response-outparam::set" on every request.
-          |                // --addr 0.0.0.0:8080 is required so the pod's ServicePort (hardcoded to 8080 above) can reach it —
-          |                // wasmtime serve otherwise defaults to 127.0.0.1 and rejects non-loopback connections.
-          |                command = List("wasmtime", "serve", "-Scli", "-Sinherit-env", "-Wgc,function-references,exceptions", "--addr", "0.0.0.0:8080", "/app/main.wasm"),
+          |${containerCommandSnippet}
           |                ports = List(kubernetes.core.v1.inputs.ContainerPortArgs(containerPort = targetPort)), // TODO allow customization
           |                env = envVars
           |              )),

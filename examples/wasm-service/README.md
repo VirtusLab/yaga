@@ -139,10 +139,10 @@ resolves. Revert.
 ## Cluster run (Gate 2: pulumi up into Colima k3s)
 
 ```bash
-# 0. One-time setup.
-colima start --runtime docker --kubernetes
-docker run -d -p 5000:5000 --name registry registry:2    # if you don't use Colima's registry addon
-kubectl get nodes                                         # sanity-check the k3s node is Ready
+# 0. One-time setup - creates colima VM, builds patched runwasi shim, configures k3s.
+#    This builds runwasi with wasmtime 43 which supports the gc/function-references/exceptions
+#    features required by Scala-WASM. Takes ~5 minutes on first run.
+./deploy-k3s-wasm.sh
 
 # 1. Codegen + infra compile.
 sbt infra/compile
@@ -152,7 +152,7 @@ sbt infra/compile
 # 2. Bring up the stack.
 pulumi login --local
 pulumi stack init dev
-pulumi up
+BESOM_SBT_MODULE=infra pulumi up
 
 # 3. Hit library-service through the cluster.
 kubectl -n wasm-demo port-forward svc/library-app-service 8081:8080 &
@@ -218,3 +218,37 @@ pulumi destroy
 - **WASM component instantiation cost.** The `wasmtime serve` instance-
   per-request model is fine for a demo but adds latency on every call.
   For production-grade pooling you'll want a different component host.
+- **Kubernetes RuntimeClass requires a patched runwasi shim.** The upstream
+  `containerd-shim-wasmtime-v1` from [runwasi](https://github.com/containerd/runwasi)
+  has two issues with Scala-WASM:
+  
+  1. It doesn't enable the experimental WebAssembly features that Scala-WASM
+     requires: `gc`, `function-references`, and `exceptions`
+  2. It uses wasmtime 36.x, but Scala-WASM output requires wasmtime 43+ for
+     correct compilation of these features
+  
+  Without the patched shim, wasmtime fails with errors like:
+  ```
+  failed to parse WebAssembly module
+  Caused by: array indexed types not supported without the gc feature
+  ```
+  or:
+  ```
+  failed to compile: wasm[0]::function[65]::classCastException
+  ```
+  
+  This is tracked in [containerd/runwasi#1004](https://github.com/containerd/runwasi/issues/1004).
+  
+  **Yaga vendors a patched runwasi** at `vendor/runwasi/` with:
+  - Wasmtime upgraded to 43.0.1 (from 36.0.6)
+  - `gc`, `function-references`, and `exceptions` features enabled
+  
+  The `deploy-k3s-wasm.sh` script handles building and installing this shim.
+  For manual setup:
+  1. Build: `cd vendor/runwasi && cargo build --release -p containerd-shim-wasmtime`
+  2. Install: copy `target/release/containerd-shim-wasmtime-v1` to `/usr/local/bin/`
+  3. Configure containerd with the `wasmtime` RuntimeClass
+  
+  Alternatively, use `WasmRuntime.EmbeddedWasmtime` (the yaga default) which
+  runs `wasmtime serve -Wgc,function-references,exceptions` inside the
+  container — no custom shim required, but adds container overhead.

@@ -31,3 +31,6 @@
 [submodule "modules/wasm-demo-tapir"]
 	path = modules/wasm-demo-tapir
 	url = git@github.com:Florian3k/wasm-demo-tapir.git
+[submodule "vendor/runwasi"]
+	path = vendor/runwasi
+	url = https://github.com/containerd/runwasi.git

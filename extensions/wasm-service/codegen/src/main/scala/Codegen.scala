@@ -12,13 +12,14 @@ object Codegen:
     codegenSources: List[CodegenSource],
     packagePrefix: String,
     generateInfra: Boolean,
-    dockerContextAbsolutePath: Option[Path]
+    dockerContextAbsolutePath: Option[Path],
+    wasmRuntimeClassName: Option[String]
   ): Seq[SourceFile] =
     given Context = ContextSetup.contextFromCodegenSources(codegenSources)
 
     val packagePrefixParts = packagePrefix.split('.').toSeq.filter(_.nonEmpty)
     val extractedApis = ApiExtractor().extractServiceAppApis(codegenSources = codegenSources)
-    val generator = ModuleApiGenerator(packagePrefixParts, extractedApis)
+    val generator = ModuleApiGenerator(packagePrefixParts, extractedApis, wasmRuntimeClassName)
     val modelSources = generator.generateModelSources()
     val infraSources =
       if generateInfra then
@@ -39,6 +40,7 @@ object Codegen:
       packagePrefix = codegenMainArgs.packagePrefix,
       generateInfra = codegenMainArgs.generateInfra,
       dockerContextAbsolutePath = codegenMainArgs.dockerContextAbsolutePath,
+      wasmRuntimeClassName = codegenMainArgs.wasmRuntimeClassName,
     )
 
     val outputDirPath = os.Path(codegenMainArgs.outputDir)

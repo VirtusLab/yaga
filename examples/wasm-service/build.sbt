@@ -3,6 +3,7 @@ import scalajscrossproject.ScalaJSCrossPlugin.autoImport.*
 import org.scalajs.sbtplugin.ScalaJSPlugin
 import org.scalajs.sbtplugin.ScalaJSPlugin.autoImport.*
 import org.scalajs.linker.interface.ModuleKind
+import yaga.sbt.k8sservice.WasmRuntime
 
 // scala-wasm fork consumes snapshots from Sonatype Central Snapshots.
 ThisBuild / resolvers += "Sonatype Central Snapshots" at "https://central.sonatype.com/repository/maven-snapshots/"
@@ -11,6 +12,13 @@ ThisBuild / resolvers += "Sonatype Central Snapshots" at "https://central.sonaty
 // Keep in lock-step with extensions/wasm-service/sdk-wasm-runtime/build.sbt.
 val wasmLibsVersion = "0.0.1-wasm-SNAPSHOT"
 val yagaVersion     = "0.1.0-SNAPSHOT"
+
+// WASM runtime mode: "embedded" for wasmtime-in-container, "runtimeclass" for k8s RuntimeClass
+// Set via WASM_RUNTIME env var (default: runtimeclass)
+val wasmRuntime: WasmRuntime = sys.env.getOrElse("WASM_RUNTIME", "runtimeclass").toLowerCase match {
+  case "embedded" => WasmRuntime.EmbeddedWasmtime
+  case _          => WasmRuntime.RuntimeClass("wasmtime")
+}
 
 // Ground rule #3 — the yaga AutoPlugin deliberately does not set
 // `scalaOrganization` / `scalaVersion` / `scalaCompilerBridgeBinaryJar`
@@ -121,6 +129,6 @@ lazy val infra = project
     )
   )
   .withYagaDependencies(
-    `books-service`.yagaWasmServiceInfra(),
-    `library-service`.yagaWasmServiceInfra()
+    `books-service`.yagaWasmServiceInfra(wasmRuntime = wasmRuntime),
+    `library-service`.yagaWasmServiceInfra(wasmRuntime = wasmRuntime)
   )
