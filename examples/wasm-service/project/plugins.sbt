@@ -6,7 +6,7 @@
 // WASM backend.
 resolvers += "Sonatype Central Snapshots" at "https://central.sonatype.com/repository/maven-snapshots/"
 
-addSbtPlugin("io.github.scala-wasm" % "sbt-scalajs" % "1.20.2-wasm.1-SNAPSHOT")
+addSbtPlugin("io.github.scala-wasm" % "sbt-scalajs" % "1.21.1-wasm.4")
 
 // sbt-scalajs-crossproject 1.3.2 declares a hard dependency on the upstream
 // `org.scala-js % sbt-scalajs` artifact; excluding it here lets the scala-wasm
@@ -16,4 +16,4 @@ addSbtPlugin(
     .exclude("org.scala-js", "sbt-scalajs")
 )
 
-addSbtPlugin("org.virtuslab" % "sbt-yaga-k8s-service" % "0.1.0-SNAPSHOT")
+addSbtPlugin("org.virtuslab" % "sbt-yaga-k8s-service" % "0.1.0")

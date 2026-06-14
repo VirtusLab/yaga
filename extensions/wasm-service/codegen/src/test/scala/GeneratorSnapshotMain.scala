@@ -5,22 +5,17 @@ import java.nio.file.{Path, Paths}
 import yaga.codegen.core.extractor.CodegenSource
 import yaga.codegen.wasmservice.Codegen
 
-/**
- * Phase 4 snapshot-style smoke test for the WASM service codegen pipeline.
- *
- * Runs `Codegen.sourcesForModuleApi` against the pre-built `testService` jar
- * under `src/test/resources/testService/target/scala-3.3.5/` and checks five
- * invariants on the emitted sources (see the manual checklist in the plan):
- *
- *   1. Generated `TestService.scala` imports the WASM-service besom types.
- *   2. Container command is `List("wasmtime", "serve", "/app/main.wasm", ...)`.
- *   3. The env var list contains `YAGA_WASM_SERVICE_CONFIG`.
- *   4. `serverApiSpecJson` triple-quoted literal is valid JSON.
- *   5. `Book.scala` / `MyConfig.scala` derive `_root_.besom.json.JsonFormat`.
- *
- * Invoke via:
- *   sbt "wasm-service-codegen/Test/runMain yaga.codegen.wasmservice.test.runGeneratorSnapshot"
- */
+/** Phase 4 snapshot-style smoke test for the WASM service codegen pipeline.
+  *
+  * Runs `Codegen.sourcesForModuleApi` against the pre-built `testService` jar under `src/test/resources/testService/target/scala-3.3.5/`
+  * and checks five invariants on the emitted sources (see the manual checklist in the plan):
+  *
+  *   1. Generated `TestService.scala` imports the WASM-service besom types. 2. Container command is `List("wasmtime", "serve",
+  *      "/app/main.wasm", ...)`. 3. The env var list contains `YAGA_WASM_SERVICE_CONFIG`. 4. `serverApiSpecJson` triple-quoted literal is
+  *      valid JSON. 5. `Book.scala` / `MyConfig.scala` derive `_root_.besom.json.JsonFormat`.
+  *
+  * Invoke via: sbt "wasm-service-codegen/Test/runMain yaga.codegen.wasmservice.test.runGeneratorSnapshot"
+  */
 object GeneratorSnapshotMain:
 
   private val testServiceJarPath: Path =
@@ -37,7 +32,7 @@ object GeneratorSnapshotMain:
     val sdkMaven = CodegenSource.MavenArtifact(
       orgName = "org.virtuslab",
       moduleName = "yaga-wasm-service-sdk_3",
-      version = "0.1.0-SNAPSHOT"
+      version = "0.1.0"
     )
 
     val sources = Codegen.sourcesForModuleApi(
@@ -47,7 +42,8 @@ object GeneratorSnapshotMain:
       ),
       packagePrefix = "gen.test",
       generateInfra = true,
-      dockerContextAbsolutePath = Some(Paths.get("/tmp/fake-ctx"))
+      dockerContextAbsolutePath = Some(Paths.get("/tmp/fake-ctx")),
+      wasmRuntimeClassName = None
     )
 
     val sourcesByFile: Map[String, String] =
@@ -64,8 +60,8 @@ object GeneratorSnapshotMain:
         println(s"  FAIL $name $detail")
         failures += name
 
-    val testServiceSrc = sourcesByFile.getOrElse("TestService.scala",
-      sys.error("expected gen.test.testservice.TestService.scala in output"))
+    val testServiceSrc =
+      sourcesByFile.getOrElse("TestService.scala", sys.error("expected gen.test.testservice.TestService.scala in output"))
 
     // 1. Imports
     check(
@@ -123,17 +119,18 @@ object GeneratorSnapshotMain:
     //    standalone file because the ModelExtractor only walks rootTypes (config),
     //    not endpoint I/O types — Book shows up in the embedded OpenAPI spec instead.
     //    That's consistent with k8s-service's ApiExtractor.extractReferencedSymbols.
-    val myConfigSrc = sourcesByFile.getOrElse("MyConfig.scala",
-      sys.error("expected MyConfig.scala in output"))
+    val myConfigSrc = sourcesByFile.getOrElse("MyConfig.scala", sys.error("expected MyConfig.scala in output"))
     check(
       "MyConfig.scala derives _root_.besom.json.JsonFormat",
       myConfigSrc.contains("derives _root_.besom.json.JsonFormat")
     )
-    sourcesByFile.get("Book.scala").foreach: bookSrc =>
-      check(
-        "Book.scala derives _root_.besom.json.JsonFormat (if emitted)",
-        bookSrc.contains("derives _root_.besom.json.JsonFormat")
-      )
+    sourcesByFile
+      .get("Book.scala")
+      .foreach: bookSrc =>
+        check(
+          "Book.scala derives _root_.besom.json.JsonFormat (if emitted)",
+          bookSrc.contains("derives _root_.besom.json.JsonFormat")
+        )
 
     println()
     if failures.nonEmpty then
@@ -143,5 +140,4 @@ object GeneratorSnapshotMain:
       println("--- TestService.scala (full) ---")
       println(testServiceSrc)
       sys.exit(1)
-    else
-      println(s"OK — ${sources.size} source files generated, all snapshot checks passed")
+    else println(s"OK — ${sources.size} source files generated, all snapshot checks passed")

@@ -66,7 +66,7 @@ object K8sServiceSettings {
       ("org.portable-scala" % "sbt-scalajs-crossproject" % "1.3.2")
         .exclude("org.scala-js", "sbt-scalajs")
     ),
-    addSbtPlugin("io.github.scala-wasm" % "sbt-scalajs" % "1.20.2-wasm.1-SNAPSHOT")
+    addSbtPlugin("io.github.scala-wasm" % "sbt-scalajs" % "1.21.1-wasm.4")
   )
 
   val classGraphDep = "io.github.classgraph" % "classgraph" % "4.8.179" // TODO reuse between extensions

@@ -11,6 +11,6 @@ lazy val testService = (project in file("."))
   .settings(
     name := "test-service",
     libraryDependencies ++= Seq(
-      "org.virtuslab" %% "yaga-wasm-service-sdk" % "0.1.0-SNAPSHOT"
+      "org.virtuslab" %% "yaga-wasm-service-sdk" % "0.1.0"
     )
   )

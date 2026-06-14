@@ -3,6 +3,7 @@ import besom.api.kubernetes
 import besom.api.docker
 
 import example.books.{BooksService, BooksServiceArgs}
+import example.greeting.{GreetingService, GreetingServiceArgs}
 import example.library.{LibraryService, LibraryServiceArgs}
 
 import yaga.wasmservice.{ImageCoordinates, ImagePlatform}
@@ -83,29 +84,42 @@ import yaga.wasmservice.{ImageCoordinates, ImagePlatform}
     )
   )
 
+  val greetingImage = GreetingService.imageResource(
+    resourceName = "greeting-image",
+    imageCoordinates = ImageCoordinates(s"$registryHost/greeting-service:dev"),
+    registry = docker.inputs.RegistryArgs(),
+    platform = ImagePlatform.LinuxArm64
+  )
+
+  val greetingApp = GreetingService(
+    "greeting-app",
+    GreetingServiceArgs(
+      namespace    = namespaceName,
+      image        = greetingImage,
+      imageSecrets = stubDockerSecret,
+      runConfig    = example.greeting.GreetingConfig(defaultName = "World")
+    )
+  )
+
   val libraryApp = LibraryService(
     "library-app",
     LibraryServiceArgs(
       namespace    = namespaceName,
       image        = libraryImage,
       imageSecrets = stubDockerSecret,
-      // `asServiceRef[BooksEndpoints]` gives us an `Output[ServiceRef[...]]`
-      // typed against the *client-side* `BooksEndpoints` trait that codegen
-      // generated alongside the server resource. SchemaCompatibility will
-      // verify at compile time that the server schema embedded in
-      // `BooksService.serverApiSpecJson` matches the client schema embedded
-      // in `BooksEndpoints.clientApiSpecJson` — break either one and this
-      // infra source will stop compiling.
       runConfig =
         for booksRef <- booksApp.asServiceRef[example.books.BooksEndpoints]
-        yield example.library.LibraryConfig(booksRef = booksRef)
+            greetingRef <- greetingApp.asServiceRef[example.greeting.GreetingEndpoints]
+        yield example.library.LibraryConfig(booksRef = booksRef, greetingRef = greetingRef)
     )
   )
 
-  Stack(namespace, stubDockerSecret, booksImage, booksApp, libraryImage, libraryApp).exports(
-    booksServiceName      = booksApp.flatMap(_.serviceName),
-    booksDeploymentName   = booksApp.flatMap(_.deploymentName),
-    libraryServiceName    = libraryApp.flatMap(_.serviceName),
-    libraryDeploymentName = libraryApp.flatMap(_.deploymentName)
+  Stack(namespace, stubDockerSecret, booksImage, booksApp, greetingImage, greetingApp, libraryImage, libraryApp).exports(
+    booksServiceName        = booksApp.flatMap(_.serviceName),
+    booksDeploymentName     = booksApp.flatMap(_.deploymentName),
+    greetingServiceName     = greetingApp.flatMap(_.serviceName),
+    greetingDeploymentName  = greetingApp.flatMap(_.deploymentName),
+    libraryServiceName      = libraryApp.flatMap(_.serviceName),
+    libraryDeploymentName   = libraryApp.flatMap(_.deploymentName)
   )
 }

@@ -1,22 +1,24 @@
 resolvers += "Sonatype Central Snapshots" at "https://central.sonatype.com/repository/maven-snapshots/"
 
-val wasmSnapshotVersion = "0.0.1-wasm-SNAPSHOT"
+val tapirVersion = "1.13.5-WASM-1"
+val apispecVersion = "0.11.10-WASM-1"
+val circeVersion = "0.14.15-WASM-1"
 
 name := "yaga-wasm-service-sdk-runtime"
-version := "0.1.0-SNAPSHOT"
+version := "0.1.0"
 organization := "org.virtuslab"
 scalaOrganization := "io.github.scala-wasm"
-scalaVersion := "3.8.3-RC1-wasm-bin-SNAPSHOT"
+scalaVersion := "3.8.3-RC1-wasm.4"
 
 libraryDependencies ++= Seq(
-  "com.softwaremill.sttp.tapir" %%% "tapir-core" % wasmSnapshotVersion,
-  "com.softwaremill.sttp.tapir" %%% "tapir-server" % wasmSnapshotVersion,
-  "com.softwaremill.sttp.tapir" %%% "tapir-json-circe" % wasmSnapshotVersion,
-  "com.softwaremill.sttp.tapir" %%% "tapir-openapi-docs" % wasmSnapshotVersion,
-  "com.softwaremill.sttp.apispec" %%% "openapi-circe" % wasmSnapshotVersion,
-  "io.circe" %%% "circe-core" % wasmSnapshotVersion,
-  "io.circe" %%% "circe-generic" % wasmSnapshotVersion,
-  "io.circe" %%% "circe-parser" % wasmSnapshotVersion
+  "io.github.florian3k.sttp.tapir" %%% "tapir-core" % tapirVersion,
+  "io.github.florian3k.sttp.tapir" %%% "tapir-server" % tapirVersion,
+  "io.github.florian3k.sttp.tapir" %%% "tapir-json-circe" % tapirVersion,
+  "io.github.florian3k.sttp.tapir" %%% "tapir-openapi-docs" % tapirVersion,
+  "io.github.florian3k.sttp.apispec" %%% "openapi-circe" % apispecVersion,
+  "io.github.florian3k.circe" %%% "circe-core" % circeVersion,
+  "io.github.florian3k.circe" %%% "circe-generic" % circeVersion,
+  "io.github.florian3k.circe" %%% "circe-parser" % circeVersion
 )
 
 // Workaround: scalaOrganization should work out of the box
@@ -33,11 +35,13 @@ scalaCompilerBridgeBinaryJar := {
     )
     .toOption
     .flatMap { report =>
-      report.select(
-        configurationFilter(Compile.name),
-        moduleFilter(bridgeModule.organization, bridgeModule.name, bridgeModule.revision),
-        artifactFilter(extension = "jar", classifier = "")
-      ).headOption
+      report
+        .select(
+          configurationFilter(Compile.name),
+          moduleFilter(bridgeModule.organization, bridgeModule.name, bridgeModule.revision),
+          artifactFilter(extension = "jar", classifier = "")
+        )
+        .headOption
     }
   Some(jar.getOrElse(sys.error(s"Could not resolve $bridgeModule")))
 }

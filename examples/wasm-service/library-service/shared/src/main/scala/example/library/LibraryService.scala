@@ -10,17 +10,15 @@ object LibraryService extends WasmServiceApp[LibraryConfig]:
 
   override def serverEndpoints(config: LibraryConfig): List[Endpoint] =
     val handler = LibraryEndpoints.summary.serverLogic[Identity] { _ =>
-      // IMPORTANT: `config.booksRef` is only dereferenced INSIDE the request
-      // handler. During codegen extraction `serverEndpoints` is invoked with
-      // `null.asInstanceOf[LibraryConfig]`, so touching `config` at the top
-      // level of this method would NPE at build time.
       given SttpClientInterpreter = SttpClientInterpreter()
       val backend      = PlatformBackend.sync
       val booksClient  = config.booksRef.toRequestThrowErrors
+      val greetingClient = config.greetingRef.toRequestThrowErrors
 
       try
         val books = booksClient.listBooks(()).send(backend).body
-        Right(LibrarySummary(count = books.size, titles = books.map(_.title)))
+        val greeting = greetingClient.greet(Some("reader")).send(backend).body
+        Right(LibrarySummary(count = books.size, titles = books.map(_.title), greeting = Some(greeting.message)))
       catch
         case t: Throwable => Left(s"upstream failure: ${t.getMessage}")
     }

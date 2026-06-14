@@ -8,10 +8,9 @@ import yaga.sbt.k8sservice.WasmRuntime
 // scala-wasm fork consumes snapshots from Sonatype Central Snapshots.
 ThisBuild / resolvers += "Sonatype Central Snapshots" at "https://central.sonatype.com/repository/maven-snapshots/"
 
-// Pinned coordinates of the WASM fork of sttp-tapir / sttp-apispec / circe.
-// Keep in lock-step with extensions/wasm-service/sdk-wasm-runtime/build.sbt.
-val wasmLibsVersion = "0.0.1-wasm-SNAPSHOT"
-val yagaVersion     = "0.1.0-SNAPSHOT"
+val tapirVersion = "1.13.5-WASM-1"
+val circeVersion = "0.14.15-WASM-1"
+val yagaVersion = "0.1.0"
 
 // WASM runtime mode: "embedded" for wasmtime-in-container, "runtimeclass" for k8s RuntimeClass
 // Set via WASM_RUNTIME env var (default: runtimeclass)
@@ -26,7 +25,7 @@ val wasmRuntime: WasmRuntime = sys.env.getOrElse("WASM_RUNTIME", "runtimeclass")
 // Copy this verbatim into any new WASM-service build.
 lazy val jsPlatformSettings: Seq[Setting[_]] = Seq(
   scalaOrganization := "io.github.scala-wasm",
-  scalaVersion      := "3.8.3-RC1-wasm-bin-SNAPSHOT",
+  scalaVersion := "3.8.3-RC1-wasm.4",
 
   // Workaround: sbt resolves the compiler bridge based on `scalaVersion` but
   // assumes `org.scala-lang` as the organization. With `scalaOrganization`
@@ -46,11 +45,13 @@ lazy val jsPlatformSettings: Seq[Setting[_]] = Seq(
       )
       .toOption
       .flatMap { report =>
-        report.select(
-          configurationFilter(Compile.name),
-          moduleFilter(bridgeModule.organization, bridgeModule.name, bridgeModule.revision),
-          artifactFilter(extension = "jar", classifier = "")
-        ).headOption
+        report
+          .select(
+            configurationFilter(Compile.name),
+            moduleFilter(bridgeModule.organization, bridgeModule.name, bridgeModule.revision),
+            artifactFilter(extension = "jar", classifier = "")
+          )
+          .headOption
       }
     Some(jar.getOrElse(sys.error(s"Could not resolve $bridgeModule")))
   }
@@ -68,10 +69,10 @@ lazy val `books-endpoints` = crossProject(JVMPlatform, JSPlatform)
   .settings(scalaVersion := "3.3.6")
   .jvmSettings(
     libraryDependencies ++= Seq(
-      "com.softwaremill.sttp.tapir" %% "tapir-core"       % wasmLibsVersion,
-      "com.softwaremill.sttp.tapir" %% "tapir-json-circe" % wasmLibsVersion,
-      "io.circe"                    %% "circe-core"       % wasmLibsVersion,
-      "io.circe"                    %% "circe-generic"    % wasmLibsVersion,
+      "io.github.florian3k.sttp.tapir" %% "tapir-core" % tapirVersion,
+      "io.github.florian3k.sttp.tapir" %% "tapir-json-circe" % tapirVersion,
+      "io.github.florian3k.circe" %% "circe-core" % circeVersion,
+      "io.github.florian3k.circe" %% "circe-generic" % circeVersion,
       // JVM-side SDK brings in `yaga.wasmservice.ExtractEndpoints` for the macro derivation.
       "org.virtuslab" %% "yaga-wasm-service-sdk" % yagaVersion
     )
@@ -79,10 +80,10 @@ lazy val `books-endpoints` = crossProject(JVMPlatform, JSPlatform)
   .jsSettings(jsPlatformSettings*)
   .jsSettings(
     libraryDependencies ++= Seq(
-      "com.softwaremill.sttp.tapir" %%% "tapir-core"       % wasmLibsVersion,
-      "com.softwaremill.sttp.tapir" %%% "tapir-json-circe" % wasmLibsVersion,
-      "io.circe"                    %%% "circe-core"       % wasmLibsVersion,
-      "io.circe"                    %%% "circe-generic"    % wasmLibsVersion,
+      "io.github.florian3k.sttp.tapir" %%% "tapir-core" % tapirVersion,
+      "io.github.florian3k.sttp.tapir" %%% "tapir-json-circe" % tapirVersion,
+      "io.github.florian3k.circe" %%% "circe-core" % circeVersion,
+      "io.github.florian3k.circe" %%% "circe-generic" % circeVersion,
       // JS-side runtime mirror of `yaga.wasmservice.ExtractEndpoints`.
       "org.virtuslab" %%% "yaga-wasm-service-sdk-runtime" % yagaVersion
     )
@@ -109,26 +110,55 @@ lazy val `books-service` = crossProject(JVMPlatform, JSPlatform)
 lazy val `library-service` = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Full)
   .in(file("library-service"))
-  .dependsOn(`books-endpoints`)
+  .dependsOn(`books-endpoints`, `greeting-endpoints`)
   .yagaWasmService
   .yagaWasmServiceClient
   .settings(scalaVersion := "3.3.6")
   .jsSettings(jsPlatformSettings*)
 
-// ---------------------------------------------------------------------------
-// infra: Besom/Pulumi program that consumes the generated BooksService /
-// LibraryService resource classes and deploys them onto a local k3s cluster.
-// ---------------------------------------------------------------------------
+lazy val `greeting-endpoints` = crossProject(JVMPlatform, JSPlatform)
+  .crossType(CrossType.Pure)
+  .in(file("greeting-endpoints"))
+  .settings(scalaVersion := "3.3.6")
+  .jvmSettings(
+    libraryDependencies ++= Seq(
+      "io.github.florian3k.sttp.tapir" %% "tapir-core" % tapirVersion,
+      "io.github.florian3k.sttp.tapir" %% "tapir-json-circe" % tapirVersion,
+      "io.github.florian3k.circe" %% "circe-core" % circeVersion,
+      "io.github.florian3k.circe" %% "circe-generic" % circeVersion,
+      "org.virtuslab" %% "yaga-wasm-service-sdk" % yagaVersion
+    )
+  )
+  .jsSettings(jsPlatformSettings*)
+  .jsSettings(
+    libraryDependencies ++= Seq(
+      "io.github.florian3k.sttp.tapir" %%% "tapir-core" % tapirVersion,
+      "io.github.florian3k.sttp.tapir" %%% "tapir-json-circe" % tapirVersion,
+      "io.github.florian3k.circe" %%% "circe-core" % circeVersion,
+      "io.github.florian3k.circe" %%% "circe-generic" % circeVersion,
+      "org.virtuslab" %%% "yaga-wasm-service-sdk-runtime" % yagaVersion
+    )
+  )
+
+lazy val `greeting-service` = crossProject(JVMPlatform, JSPlatform)
+  .crossType(CrossType.Full)
+  .in(file("greeting-service"))
+  .dependsOn(`greeting-endpoints`)
+  .yagaWasmService
+  .settings(scalaVersion := "3.3.6")
+  .jsSettings(jsPlatformSettings*)
+
 lazy val infra = project
   .in(file("infra"))
   .settings(
     scalaVersion := "3.3.6",
     libraryDependencies ++= Seq(
       "org.virtuslab" %% "besom-kubernetes" % "4.22.1-core.0.5",
-      "org.virtuslab" %% "besom-docker"     % "4.6.2-core.0.5"
+      "org.virtuslab" %% "besom-docker" % "4.6.2-core.0.5"
     )
   )
   .withYagaDependencies(
     `books-service`.yagaWasmServiceInfra(wasmRuntime = wasmRuntime),
-    `library-service`.yagaWasmServiceInfra(wasmRuntime = wasmRuntime)
+    `library-service`.yagaWasmServiceInfra(wasmRuntime = wasmRuntime),
+    `greeting-service`.yagaWasmServiceInfra(wasmRuntime = wasmRuntime)
   )

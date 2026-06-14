@@ -11,7 +11,7 @@ import scala.meta.XtensionSyntax
 
 class ModuleApiGenerator(packagePrefixParts: Seq[String], lambdaApis: Seq[ExtractedLambdaApi]):
   val apiModelSymbolSet = lambdaApis.foldLeft(Set.empty[Symbol])(_ | _.modelSymbols.toSet)
-  val apiModelSymbols = apiModelSymbolSet.toSeq//.sortBy(_.name) TODO
+  val apiModelSymbols = apiModelSymbolSet.toSeq // .sortBy(_.name) TODO
   val typeRenderer = TypeRenderer(packagePrefixParts, apiModelSymbolSet)
 
   def generateModelSources()(using Context): Seq[SourceFile] =
@@ -20,7 +20,7 @@ class ModuleApiGenerator(packagePrefixParts: Seq[String], lambdaApis: Seq[Extrac
         Seq(sourceForCaseClass(sym))
       case sym =>
         throw Exception(s"Code generation unsupported for symbol: ${sym}")
-         // TODO handle other types
+      // TODO handle other types
 
   def sourceForCaseClass(sym: ClassSymbol)(using Context): SourceFile =
     val packagesSuffixParts = ModelExtractor.ownerPackageNamesChain(sym.owner)
@@ -60,7 +60,8 @@ class ModuleApiGenerator(packagePrefixParts: Seq[String], lambdaApis: Seq[Extrac
 
   def generateJvmLambdas(jarPath: Path)(using Context): Seq[SourceFile] =
     lambdaApis.map: lambdaApi =>
-      val lamdaHandler = (lambdaApi.handlerClassPackageParts :+ lambdaApi.handlerClassName).mkString(".") // TODO don't handle this logic here
+      val lamdaHandler =
+        (lambdaApi.handlerClassPackageParts :+ lambdaApi.handlerClassName).mkString(".") // TODO don't handle this logic here
       generateLambda(
         lambdaApi,
         lambdaHandler = lamdaHandler,
@@ -70,7 +71,8 @@ class ModuleApiGenerator(packagePrefixParts: Seq[String], lambdaApis: Seq[Extrac
 
   def generateNodejsLambdas(deployableArchivePath: Path)(using Context): Seq[SourceFile] =
     lambdaApis.map: lambdaApi =>
-      val handlerFileName = (lambdaApi.handlerClassPackageParts :+ lambdaApi.handlerClassName).mkString("_") // TODO don't handle this logic here 
+      val handlerFileName =
+        (lambdaApi.handlerClassPackageParts :+ lambdaApi.handlerClassName).mkString("_") // TODO don't handle this logic here
       generateLambda(
         lambdaApi,
         lambdaHandler = s"${handlerFileName}.handler",
@@ -78,10 +80,10 @@ class ModuleApiGenerator(packagePrefixParts: Seq[String], lambdaApis: Seq[Extrac
         codeArchivePath = deployableArchivePath
       )
 
-
   def generateGraalLambdas(deployableArchivePath: Path)(using Context): Seq[SourceFile] =
     lambdaApis.map: lambdaApi =>
-      val lamdaHandler = (lambdaApi.handlerClassPackageParts :+ lambdaApi.handlerClassName).mkString(".") // TODO don't handle this logic here
+      val lamdaHandler =
+        (lambdaApi.handlerClassPackageParts :+ lambdaApi.handlerClassName).mkString(".") // TODO don't handle this logic here
       generateLambda(
         lambdaApi,
         lambdaHandler = lamdaHandler,
@@ -90,10 +92,10 @@ class ModuleApiGenerator(packagePrefixParts: Seq[String], lambdaApis: Seq[Extrac
       )
 
   def generateLambda(
-    lambdaApi: ExtractedLambdaApi,
-    lambdaHandler: String,
-    runtime: String,
-    codeArchivePath: Path
+      lambdaApi: ExtractedLambdaApi,
+      lambdaHandler: String,
+      runtime: String,
+      codeArchivePath: Path
   )(using Context): SourceFile =
     val packagesSuffixParts = lambdaApi.handlerClassPackageParts
     val packageParts = packagePrefixParts ++ packagesSuffixParts
@@ -108,9 +110,10 @@ class ModuleApiGenerator(packagePrefixParts: Seq[String], lambdaApis: Seq[Extrac
 
     val UnitClass = ctx.defn.UnitClass
 
-    val defaultConfigValueSnippet = lambdaApi.handlerConfigType.showBasic match // TODO handle other types in an extensible / more generic way
-      case "scala.Unit" => " = ()"
-      case _ => ""
+    val defaultConfigValueSnippet =
+      lambdaApi.handlerConfigType.showBasic match // TODO handle other types in an extensible / more generic way
+        case "scala.Unit" => " = ()"
+        case _            => ""
 
     val sourceCode =
       m"""|/*
@@ -137,7 +140,7 @@ class ModuleApiGenerator(packagePrefixParts: Seq[String], lambdaApis: Seq[Extrac
           |    args: _root_.besom.api.aws.lambda.FunctionArgs,
           |    config: _root_.besom.types.Input[Config]${defaultConfigValueSnippet},
           |    opts: _root_.besom.ResourceOptsVariant.Custom ?=> _root_.besom.CustomResourceOptions = _root_.besom.CustomResourceOptions()
-          |  ): _root_.besom.types.Output[${lambdaClassName}] =
+          |  )(using _root_.besom.Context): _root_.besom.types.Output[${lambdaClassName}] =
           |    val runtime = "$runtime"
           |    val handlerName = "${lambdaHandler}"
           |    val codeArchivePath = "${codeArchivePath.toAbsolutePath.toString}"
@@ -175,7 +178,7 @@ class ModuleApiGenerator(packagePrefixParts: Seq[String], lambdaApis: Seq[Extrac
     val sourceCode =
       m"""|import { ${mangledClassFullName} as HandlerClass } from "./index.js"
           |
-          |const handlerInstance = new HandlerClass() 
+          |const handlerInstance = new HandlerClass()
           |
           |export const handler = async(event, context) => {
           |    return await handlerInstance.handleRequest(event, context)

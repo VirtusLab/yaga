@@ -2,7 +2,10 @@ import sbt._
 import sbt.Keys._
 
 object WasmServiceSettings {
-  val wasmSnapshotVersion = "0.0.1-wasm-SNAPSHOT"
+  val tapirVersion = "1.13.5-WASM-1"
+  val apispecVersion = "0.11.10-WASM-1"
+  val circeVersion = "0.14.15-WASM-1"
+  val sttpClient4Version = "4.0.15-WASM-1"
 
   // JVM-only SDK: the WasmServiceApp trait + OpenAPI extraction
   // Compiles with standard Scala — used for metadata extraction at build time
@@ -11,14 +14,14 @@ object WasmServiceSettings {
   val sdkSettings = CommonSettings.sdkModuleSettings ++ Seq(
     name := "yaga-wasm-service-sdk",
     libraryDependencies ++= Seq(
-      "com.softwaremill.sttp.tapir" %% "tapir-core" % wasmSnapshotVersion,
-      "com.softwaremill.sttp.tapir" %% "tapir-server" % wasmSnapshotVersion,
-      "com.softwaremill.sttp.tapir" %% "tapir-json-circe" % wasmSnapshotVersion,
-      "com.softwaremill.sttp.tapir" %% "tapir-openapi-docs" % wasmSnapshotVersion,
-      "com.softwaremill.sttp.apispec" %% "openapi-circe" % wasmSnapshotVersion,
-      "io.circe" %% "circe-core" % wasmSnapshotVersion,
-      "io.circe" %% "circe-generic" % wasmSnapshotVersion,
-      "io.circe" %% "circe-parser" % wasmSnapshotVersion
+      "io.github.florian3k.sttp.tapir" %% "tapir-core" % tapirVersion,
+      "io.github.florian3k.sttp.tapir" %% "tapir-server" % tapirVersion,
+      "io.github.florian3k.sttp.tapir" %% "tapir-json-circe" % tapirVersion,
+      "io.github.florian3k.sttp.tapir" %% "tapir-openapi-docs" % tapirVersion,
+      "io.github.florian3k.sttp.apispec" %% "openapi-circe" % apispecVersion,
+      "io.github.florian3k.circe" %% "circe-core" % circeVersion,
+      "io.github.florian3k.circe" %% "circe-generic" % circeVersion,
+      "io.github.florian3k.circe" %% "circe-parser" % circeVersion
     )
   )
 
@@ -27,10 +30,10 @@ object WasmServiceSettings {
   val sdkClientSettings = CommonSettings.sdkModuleSettings ++ Seq(
     name := "yaga-wasm-service-sdk-client",
     libraryDependencies ++= Seq(
-      "com.softwaremill.sttp.tapir"   %% "tapir-core"         % wasmSnapshotVersion,
-      "com.softwaremill.sttp.tapir"   %% "tapir-sttp-client4" % wasmSnapshotVersion,
-      "com.softwaremill.sttp.client4" %% "core"               % wasmSnapshotVersion,
-      "io.circe"                      %% "circe-core"         % wasmSnapshotVersion
+      "io.github.florian3k.sttp.tapir" %% "tapir-core" % tapirVersion,
+      "io.github.florian3k.sttp.tapir" %% "tapir-sttp-client4" % tapirVersion,
+      "io.github.florian3k.sttp.client4" %% "core" % sttpClient4Version,
+      "io.github.florian3k.circe" %% "circe-core" % circeVersion
     )
   )
 
@@ -56,8 +59,8 @@ object WasmServiceSettings {
       // openapi-circe transitively pulls openapi-model, which in the wasm fork
       // bundles OpenAPIComparator (upstream ships it as a separate openapi-comparator
       // artifact; the wasm-sttp-apispec fork folded it into openapi-model).
-      "com.softwaremill.sttp.apispec" %% "openapi-circe" % wasmSnapshotVersion,
-      "io.circe"                      %% "circe-parser"  % wasmSnapshotVersion
+      "io.github.florian3k.sttp.apispec" %% "openapi-circe" % apispecVersion,
+      "io.github.florian3k.circe" %% "circe-parser" % circeVersion
     )
   )
 }

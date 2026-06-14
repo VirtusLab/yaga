@@ -15,7 +15,7 @@ lazy val root = project
 ////////////////////////////////////////////////////////////
 
 ThisBuild / organization := "org.virtuslab"
-ThisBuild / version := "0.1.0-SNAPSHOT"
+ThisBuild / version := "0.1.0"
 ThisBuild / developers := List(
   Developer(
     id = "lbialy",

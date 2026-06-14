@@ -127,11 +127,11 @@ object YagaK8sServicePlugin extends AutoPlugin with K8sServicePluginKeys {
             scalaJSLinkerConfig.value
               .withPrettyPrint(false)
               .withExperimentalUseWebAssembly(true)
-              .withModuleKind(ModuleKind.ESModule)
+              .withModuleKind(ModuleKind.WasmComponent)
               .withWasmFeatures(
-                _.withTargetPureWasm(true)
-                  .withComponentModel(true)
-                  .withWitDirectory(Some(witDir))
+                // _.withTargetPureWasm(true)
+                // _.withComponentModel(true)
+                _.withWitDirectory(Some(witDir))
               )
           }
         )
@@ -141,8 +141,8 @@ object YagaK8sServicePlugin extends AutoPlugin with K8sServicePluginKeys {
         .jsSettings(libraryDependencies += "org.virtuslab" %%% "yaga-wasm-service-sdk-client-runtime" % yagaK8sServiceVersion)
 
       def yagaWasmServiceModel(
-        outputSubdirName: Option[String] = None,
-        packagePrefix: String = ""
+          outputSubdirName: Option[String] = None,
+          packagePrefix: String = ""
       ): YagaWasmServiceDependency =
         YagaWasmServiceDependency(
           crossProject = cp,
@@ -152,9 +152,9 @@ object YagaK8sServicePlugin extends AutoPlugin with K8sServicePluginKeys {
         )
 
       def yagaWasmServiceInfra(
-        outputSubdirName: Option[String] = None,
-        packagePrefix: String = "",
-        wasmRuntime: WasmRuntime = WasmRuntime.EmbeddedWasmtime
+          outputSubdirName: Option[String] = None,
+          packagePrefix: String = "",
+          wasmRuntime: WasmRuntime = WasmRuntime.EmbeddedWasmtime
       ): YagaWasmServiceDependency =
         YagaWasmServiceDependency(
           crossProject = cp,
