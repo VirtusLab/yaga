@@ -14,7 +14,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: coursier/cache-action@v6.4.3
@@ -25,9 +25,24 @@ jobs:
         with:
           jvm: graalvm-java11:22.3.3
           apps: sbt
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache wit-bindgen
+        id: cache-wit-bindgen
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/wit-bindgen
+          key: wit-bindgen-scala-${{ runner.os }}-${{ runner.arch }}
+      - name: Install wit-bindgen (Scala fork)
+        if: steps.cache-wit-bindgen.outputs.cache-hit != 'true'
+        run: cargo install --git https://github.com/scala-wasm/wit-bindgen --branch scala
       - name: Clean compile library
         run: sbt "clean; compile"
       - name: Publish locally
         run: sbt "publishLocal"
+      - name: Publish WASM runtime modules locally
+        run: |
+          (cd extensions/wasm-service/sdk-wasm-runtime && sbt publishLocal)
+          (cd extensions/wasm-service/sdk-client-wasm-runtime && sbt publishLocal)
       - name: Build examples
         run: ./scripts/buildExamples.sc
