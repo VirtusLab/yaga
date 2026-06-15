@@ -27,15 +27,20 @@ jobs:
           apps: sbt
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-      - name: Cache wit-bindgen
-        id: cache-wit-bindgen
+      - name: Cache WASM tools
+        id: cache-wasm-tools
         uses: actions/cache@v4
         with:
-          path: ~/.cargo/bin/wit-bindgen
-          key: wit-bindgen-scala-${{ runner.os }}-${{ runner.arch }}
+          path: |
+            ~/.cargo/bin/wit-bindgen
+            ~/.cargo/bin/wasm-tools
+          key: wasm-tools-${{ runner.os }}-${{ runner.arch }}
       - name: Install wit-bindgen (Scala fork)
-        if: steps.cache-wit-bindgen.outputs.cache-hit != 'true'
+        if: steps.cache-wasm-tools.outputs.cache-hit != 'true'
         run: cargo install --git https://github.com/scala-wasm/wit-bindgen --branch scala
+      - name: Install wasm-tools
+        if: steps.cache-wasm-tools.outputs.cache-hit != 'true'
+        run: cargo install wasm-tools
       - name: Clean compile library
         run: sbt "clean; compile"
       - name: Publish locally
