@@ -14,21 +14,21 @@ import YagaAwsLambdaPlugin.autoImport._
 
 private[aws] object JsHelpers {
   def awsJsLambda(
-    project: Project
+      project: Project
   ) = {
     project
       .enablePlugins(ScalaJSPlugin)
       .settings(
         libraryDependencies ++= Seq(
-          "org.virtuslab" %% "yaga-aws-lambda-sdk_sjs1" % yagaAwsLambdaVersion, // TODO use %%%
-          //jsoniterMacrosDep
+          "org.virtuslab" %% "yaga-aws-lambda-sdk_sjs1" % yagaAwsLambdaVersion // TODO use %%%
+          // jsoniterMacrosDep
         ),
-        addCompilerPlugin("org.virtuslab" %% "yaga-aws-lambda-compiler-plugin" % "0.1.0-SNAPSHOT"),
+        addCompilerPlugin("org.virtuslab" %% "yaga-aws-lambda-compiler-plugin" % "0.1.0"),
         yagaAwsLambdaRuntime := "nodejs22.x",
         scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) },
         yagaAwsLambdaProxyFiles := {
           implicit val log: Logger = streams.value.log
-          val codegenOutputDir = (Compile / target).value / "yaga" / "aws-lambda" / "js-proxies" 
+          val codegenOutputDir = (Compile / target).value / "yaga" / "aws-lambda" / "js-proxies"
           val codegenSources: Seq[Path] = Seq(yagaAwsLambdaAssembly.value)
           val dependenciesChanged = yagaAwsLambdaAssembly.outputFileChanges.hasChanges
           if (dependenciesChanged || !Files.exists(codegenOutputDir.toPath)) {
@@ -37,7 +37,7 @@ private[aws] object JsHelpers {
               outputDir = codegenOutputDir.toPath
             )
           }
-          
+
           (codegenOutputDir ** "*.mjs").get
         },
         yagaAwsDeployableLambdaArtifact := {
@@ -56,7 +56,7 @@ private[aws] object JsHelpers {
           log.debug(s"Yaga - AWS Lambda: Creating zip file ${zipFile} with files:\n${formattedZipInputs}")
           sbt.io.IO.zip(zipInputs, zipFile, time = None)
           zipFile.toPath
-        },
+        }
       )
   }
 }

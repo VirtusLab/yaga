@@ -84,7 +84,6 @@ class TypeRenderer(packagePrefixParts: Seq[String], apiSymbols: Set[Symbol]):
       case (acc, part) =>
         meta.Term.Select(acc, meta.Term.Name(part))
 
-
 object TypeRenderer:
   def prefixNameParts(prefix: Prefix)(using Context): Seq[String] =
     prefix match
@@ -97,8 +96,8 @@ object TypeRenderer:
       case _ =>
         notSupported(s"Expected package or term reference prefix but got ${prefix}")
 
-  private def notSupported(msg: String): Nothing =
+  def notSupported(msg: String): Nothing =
     throw Exception(s"Not supported by yaga codegen: ${msg}")
 
-  private def notSupported(tpe: Type): Nothing =
+  def notSupported(tpe: Type): Nothing =
     notSupported(s"type ${tpe.showBasic}")

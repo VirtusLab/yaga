@@ -1,0 +1,36 @@
+[submodule "modules/wasm-cats"]
+	path = modules/wasm-cats
+	url = https://github.com/Florian3k/wasm-cats
+[submodule "modules/wasm-circe"]
+	path = modules/wasm-circe
+	url = https://github.com/Florian3k/wasm-circe
+[submodule "modules/wasm-jawn"]
+	path = modules/wasm-jawn
+	url = https://github.com/Florian3k/wasm-jawn
+[submodule "modules/wasm-sttp"]
+	path = modules/wasm-sttp
+	url = https://github.com/Florian3k/wasm-sttp
+[submodule "modules/wasm-sttp-apispec"]
+	path = modules/wasm-sttp-apispec
+	url = https://github.com/Florian3k/wasm-sttp-apispec
+[submodule "modules/wasm-sttp-model"]
+	path = modules/wasm-sttp-model
+	url = https://github.com/Florian3k/wasm-sttp-model
+[submodule "modules/wasm-sttp-shared"]
+	path = modules/wasm-sttp-shared
+	url = https://github.com/Florian3k/wasm-sttp-shared
+[submodule "modules/wasm-tapir"]
+	path = modules/wasm-tapir
+	url = https://github.com/Florian3k/wasm-tapir
+[submodule "modules/wasm-demo-circe"]
+	path = modules/wasm-demo-circe
+	url = git@github.com:Florian3k/wasm-demo-circe.git
+[submodule "modules/wasm-demo-sttp"]
+	path = modules/wasm-demo-sttp
+	url = git@github.com:Florian3k/wasm-demo-sttp.git
+[submodule "modules/wasm-demo-tapir"]
+	path = modules/wasm-demo-tapir
+	url = git@github.com:Florian3k/wasm-demo-tapir.git
+[submodule "vendor/runwasi"]
+	path = vendor/runwasi
+	url = https://github.com/containerd/runwasi.git

@@ -1,0 +1,7 @@
+name: docker-hello
+runtime:
+  name: scala
+  options:
+    logtostderr: true
+    v: 5
+description: Simple Scala service app in docker

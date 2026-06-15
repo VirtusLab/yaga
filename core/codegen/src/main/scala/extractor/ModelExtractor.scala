@@ -25,26 +25,28 @@ class ModelExtractor():
       traverseType(tpe)
     referencedSymbols.toSet
 
-  private def notSupported(msg: String): Nothing =
+  /* protected */
+  def notSupported(msg: String): Nothing =
     throw Exception(s"Not supported by yaga codegen: ${msg}")
 
-  private def notSupported(tpe: Type): Nothing =
+  /* protected */
+  def notSupported(tpe: Type): Nothing =
     notSupported(s"type ${tpe.showBasic}")
 
+  def visitTermRef(ref: TermRef)(using Context): Unit = ()
 
-  def traverseType(tpe: Type)(using Context) =
+  def traverseType(tpe: Type)(using Context): Unit =
     tpe match
       case t: TypeRef =>
         visitTypeRef(t)
       case t: TermRef =>
-        notSupported(t)
+        visitTermRef(t)
       case t: AppliedType =>
         enqueueType(t.tycon)
         t.args.foreach:
           case arg: Type =>
             enqueueType(arg)
-          case _: WildcardTypeArg =>
-            {}
+          case _: WildcardTypeArg => {}
       case t: ByNameType =>
         enqueueType(t.underlying)
       case t: ThisType =>
@@ -90,19 +92,16 @@ class ModelExtractor():
       case t: CustomTransientGroundType =>
         notSupported(t)
 
-
   def visitTypeRef(ref: TypeRef)(using Context): Unit =
-    if isBuiltinClass(ref) then
-      return
+    if isBuiltinClass(ref) then return
 
     val cls = ref.optSymbol match
-      case None => return // TODO
+      case None      => return // TODO
       case Some(sym) => sym.asClass
 
     val packageParts = extractPackagePrefixParts(ref).getOrElse(throw Exception(s"Unsupported non-top-level class ${cls.name}"))
 
-    if !cls.isCaseClass then
-      throw Exception(s"Unsupported non-case class type ${ref.showBasic}")
+    if !cls.isCaseClass then throw Exception(s"Unsupported non-case class type ${ref.showBasic}")
 
     referencedSymbols.add(cls)
 
@@ -110,7 +109,7 @@ class ModelExtractor():
       case sym: TermSymbol if sym.name == Names.nme.Constructor => sym.asTerm
     val constructor = constructors match
       case Seq(ctor) => ctor
-      case _ => throw Exception(s"Expected exactly 1 constructor for a case class ${cls.name} but found ${constructors.size}")
+      case _         => throw Exception(s"Expected exactly 1 constructor for a case class ${cls.name} but found ${constructors.size}")
 
     constructor.declaredType match
       case meth: MethodType =>
@@ -135,7 +134,7 @@ class ModelExtractor():
 
     cls.parents.foreach(enqueueType)
 
-  def isBuiltinClass(ref: TypeRef) =
+  def isBuiltinClass(ref: TypeRef)(using Context) =
     val fullRefName = ref.showBasic
     fullRefName.startsWith("scala.") || fullRefName.startsWith("java.")
 
@@ -143,13 +142,9 @@ object ModelExtractor:
   def ownerPackageNamesChain(sym: Symbol | Null): Seq[String] =
     sym match
       case pkg: PackageSymbol =>
-        if pkg.isRootPackage then
-          Seq.empty
-        else
-          ownerPackageNamesChain(sym.owner) :+ pkg.name.name
+        pkg.fullName.path.map(_.name)
       case _ =>
         throw Exception(s"Unsupported non-package symbol ${sym}")
-    
 
   def extractPackagePrefixParts(ref: NamedType): Option[Seq[String]] =
     ref.prefix match

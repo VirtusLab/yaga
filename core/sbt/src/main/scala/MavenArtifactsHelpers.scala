@@ -48,8 +48,25 @@ private[sbt] object MavenArtifactsHelpers {
 
     import scala.sys.process._
 
+    val stdOutLines = new StringBuilder
+    val stdErrLines = new StringBuilder
+
     log.debug("Yaga: Running maven artifact: " + commandParts.map("\'" + _.toString + "\'").mkString(" "))
 
-    commandParts.!! // TODO Handle errors
+    val processLogger = ProcessLogger(
+      stdOutLine => stdOutLines.append(stdOutLine).append("\n"),
+      stdErrLine => stdErrLines.append(stdErrLine).append("\n")
+    )
+
+    val exitCode = commandParts.!(processLogger)
+      if (stdOutLines.nonEmpty) {
+        log.debug(s"Yaga: Maven artifact runtime output:\n${stdOutLines.toString()}")
+      }
+      if (stdErrLines.nonEmpty) {
+        log.error(s"Yaga: Maven artifact runtime error output:\n${stdErrLines.toString()}")
+      }
+      if (exitCode != 0) {
+        throw new Exception(s"Yaga: Maven artifact runtime failed with exit code $exitCode")
+      }
   }
 }
