@@ -23,7 +23,7 @@ jobs:
           just-version: '1.40.0'
       - uses: VirtusLab/scala-cli-setup@v1.7.1
         with:
-          jvm: graalvm-java11:22.3.3
+          jvm: graalvm-java17:22.3.3
           apps: sbt
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
